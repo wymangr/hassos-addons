@@ -1,4 +1,5 @@
-#!/usr/bin/with-contenv bashio
+#!/usr/bin/env bashio
 
 /etc/cont-init.d/alloy_setup.sh
-exec //usr/local/bin/alloy run /etc/alloy/config.alloy
+
+exec /etc/services.d/alloy/run

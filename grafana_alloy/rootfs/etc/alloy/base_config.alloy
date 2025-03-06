@@ -1,27 +1,33 @@
+
 prometheus.remote_write "default" {
 	endpoint {
-		url = "http://192.168.1.135:9091/api/v1/write"
+		url = "PROMETHEUS_WRITE_ENDPOINT"
 
 		metadata_config {
 			send_interval = "15s"
 		}
-
-		write_relabel_config {
-			action        = "replace"
-			source_labels = ["instance"]
-			target_label  = "instance"
-			replacement   = "192.168.1.73"
-		}
+		INSTANCE_TAG
 	}
-	external_labels = {
-		"servername" = "RaspberryPi HomeAssistant",
+	SERVERNAME_TAG
+}
+
+prometheus.exporter.unix "node_exporter" { }
+
+prometheus.scrape "unix" {
+	targets         = prometheus.exporter.unix.node_exporter.targets
+	forward_to      = [prometheus.remote_write.default.receiver]
+	scrape_interval = "15s"
+}
+
+prometheus.exporter.process "process_exporter" {
+	matcher {
+		name    = "{{.Comm}}"
+		cmdline = [".+"]
 	}
 }
 
-prometheus.exporter.unix "node_exporter" {}
-
-prometheus.exporter.cadvisor "cadvisor" {
-	docker_host = "unix:///var/run/docker.sock"
+prometheus.scrape "process" {
+	targets         = prometheus.exporter.process.process_exporter.targets
+	forward_to      = [prometheus.remote_write.default.receiver]
+	scrape_interval = "15s"
 }
-
-prometheus.exporter.process "process_exporter" {}

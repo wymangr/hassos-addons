@@ -1,7 +1,7 @@
 ---
 name: "Grafana Alloy"
 description: "Grafana Alloy"
-version: "1.0.0"
+version: "0.0.1"
 slug: "grafana_alloy"
 init: false
 arch:
@@ -22,3 +22,15 @@ homeassistant_api: true
 auth_api: true
 docker_api: true
 host_pid: true
+
+options:
+  overrid_config: false
+  overide_config_path: "/config/alloy/example.alloy"
+  servername_tag: "HomeAssistant"
+schema:
+  prometheus_write_endpoint: str
+  loki_endpoint: str?
+  servername_tag: str?
+  instance_tag: str?
+  overrid_config: bool
+  overide_config_path: str

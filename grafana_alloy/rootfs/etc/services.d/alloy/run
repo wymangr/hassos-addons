@@ -1,0 +1,18 @@
+#!/usr/bin/env bashio
+# ==============================================================================
+# Home Assistant Community Add-on: Grafana Alloy
+# Runs the Grafana Alloy
+# ==============================================================================
+
+OVERRIDE_CONFIG=$(bashio::config 'overide_config_path')
+
+if bashio::config.false 'overrid_config'; then
+    CONFIG_FILE=/etc/alloy/config.alloy
+else
+    CONFIG_FILE=$OVERRIDE_CONFIG
+fi
+bashio::log.info "Starting Grafana Alloy with ${CONFIG_FILE}"
+bashio::log.info "$(cat ${CONFIG_FILE})"
+
+# Run Alloy
+exec /usr/local/bin/alloy run --server.http.listen-addr=0.0.0.0:12345 --disable-reporting --storage.path=/data $CONFIG_FILE

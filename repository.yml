@@ -1,4 +1,4 @@
 # https://developers.home-assistant.io/docs/add-ons/repository#repository-configuration
-name: Wymangr Home Assistant Add-Ons
+name: wymangr Home Assistant Add-Ons
 url: 'https://github.com/wymangr/hassos-addons'
-maintainer: Wymangr
+maintainer: wymangr
