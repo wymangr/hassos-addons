@@ -1,0 +1,24 @@
+---
+name: "Grafana Alloy"
+description: "Grafana Alloy"
+version: "1.0.0"
+slug: "grafana_alloy"
+init: false
+arch:
+  - aarch64
+  - amd64
+ports:
+  12345/tcp:
+ports_description:
+  12345/tcp: Alloy web server
+map:
+  - config
+  - share
+  - ssl
+journald: true
+host_network: true
+hassio_api: true
+homeassistant_api: true
+auth_api: true
+docker_api: true
+host_pid: true
