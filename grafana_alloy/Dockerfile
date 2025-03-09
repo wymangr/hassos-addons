@@ -1,16 +1,20 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
 ARG \
-  BUILD_ARCH="amd64" \
+  BUILD_ARCH \
+  BUILD_VERSION \
   GRAFANA_ALLOY_VERSION="1.7.1"
 
+LABEL \
+  io.hass.version=${BUILD_VERSION} \
+  io.hass.type="addon" \
+  io.hass.arch="${BUILD_ARCH}"
 
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
         unzip \
+        gettext-base \
         libsystemd-dev \
         curl && \
     rm -rf /var/lib/apt/lists/* && \
