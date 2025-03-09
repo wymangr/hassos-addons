@@ -1,7 +1,7 @@
 ---
 name: "Grafana Alloy"
 description: "Grafana Alloy"
-version: "0.0.1"
+version: "0.0.2"
 slug: "grafana_alloy"
 init: false
 arch:
@@ -12,7 +12,7 @@ ports:
 ports_description:
   12345/tcp: Alloy web server
 map:
-  - config
+  - homeassistant_config
   - share
   - ssl
 journald: true
@@ -24,13 +24,25 @@ docker_api: true
 host_pid: true
 
 options:
+  enable_prometheus: true
+  prometheus_write_endpoint: http://prometheus:9090/api/v1/write
+  enable_unix_component: true
+  enable_process_component: true
+  prometheus_scrape_interval: 15s
+  servername_tag: "HomeAssistant"
+  enable_loki: false
+  loki_endpoint: http://loki:3100/api/v1/push
   overrid_config: false
   overide_config_path: "/config/alloy/example.alloy"
-  servername_tag: "HomeAssistant"
 schema:
-  prometheus_write_endpoint: str
-  loki_endpoint: str?
+  enable_prometheus: bool
+  prometheus_write_endpoint: str?
+  enable_unix_component: bool
+  enable_process_component: bool
+  prometheus_scrape_interval: list(15s|30s|60s)
   servername_tag: str?
   instance_tag: str?
+  enable_loki: bool
+  loki_endpoint: str?
   overrid_config: bool
-  overide_config_path: str
+  overide_config_path: str?

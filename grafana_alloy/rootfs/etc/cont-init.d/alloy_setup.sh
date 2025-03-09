@@ -5,9 +5,8 @@ echo "${SUPERVISOR_TOKEN}" > '/run/home-assistant.token'
 
 readonly CONFIG_DIR=/etc/alloy
 readonly CONFIG_FILE="${CONFIG_DIR}/config.alloy"
-readonly BASE_CONFIG="${CONFIG_DIR}/base_config.alloy"
+readonly CONFIG_TEMPLATE="${CONFIG_DIR}/config.alloy.template"
 
-CONFIG=$(<$BASE_CONFIG)
 
 if bashio::config.true 'overrid_config'; then
     if bashio::config.is_empty 'overide_config_path'; then
@@ -15,43 +14,88 @@ if bashio::config.true 'overrid_config'; then
     fi
 else
     # Add Prometheus Write Endpoint
-    if bashio::config.has_value 'prometheus_write_endpoint'; then
-        PROMETHEUS_ENDPOINT="$(bashio::config "prometheus_write_endpoint")"
-        CONFIG="${CONFIG//PROMETHEUS_WRITE_ENDPOINT/${PROMETHEUS_ENDPOINT}}"
-    else
+    if bashio::config.true 'enable_prometheus'; then
+
         bashio::config.require 'prometheus_write_endpoint' "You need to supply Prometheus write endpoint"
-    fi
+        EXTERNAL_LABELS=""
+        RELABEL_CONFIG=""
 
-    # Add "servername" External Lable if configured
-    if bashio::config.has_value 'servername_tag'; then
-        EXTERNAL_LABELS="external_labels = {
-                    \"servername\" = \"$(bashio::config "servername_tag")\",
-                }"
-        CONFIG="${CONFIG//SERVERNAME_TAG/${EXTERNAL_LABELS}}"
-    else
-        CONFIG="${CONFIG//SERVERNAME_TAG/}"
-    fi
+        # Prometheus Write Endpoint
+        if bashio::config.has_value 'prometheus_write_endpoint'; then
+            PROMETHEUS_ENDPOINT="$(bashio::config "prometheus_write_endpoint")"
+        fi
 
-    # Relabel "instance" tag if configured
-    if bashio::config.has_value 'instance_tag'; then
-        RELABEL_CONFIG="write_relabel_config {
-                        action        = \"replace\"
-                        source_labels = [\"instance\"]
-                        target_label  = \"instance\"
-                        replacement   = \"$(bashio::config "instance_tag")\"
+        # Servername External Label
+        if bashio::config.has_value 'servername_tag'; then
+            EXTERNAL_LABELS="
+                    external_labels = {
+                        \"servername\" = \"$(bashio::config "servername_tag")\",
                     }"
+        fi
 
-        CONFIG="${CONFIG//INSTANCE_TAG/${RELABEL_CONFIG}}"
-    else
-        CONFIG="${CONFIG//INSTANCE_TAG/}"
+        # Relabel "instance" tag if configured
+        if bashio::config.has_value 'instance_tag'; then
+            RELABEL_CONFIG="
+                        write_relabel_config {
+                            action        = \"replace\"
+                            source_labels = [\"instance\"]
+                            target_label  = \"instance\"
+                            replacement   = \"$(bashio::config "instance_tag")\"
+                        }"
+        fi
+        export PROMETHEUS_CONFIG="
+        prometheus.remote_write \"default\" {
+            endpoint {
+                url = \"$PROMETHEUS_ENDPOINT\"
+
+                metadata_config {
+                    send_interval = \"$(bashio::config "prometheus_scrape_interval")\"
+                }
+                $RELABEL_CONFIG
+            }
+            $EXTERNAL_LABELS
+        }"
+
+        ## Enable prometheus.exporter.unix
+        if bashio::config.true 'enable_unix_component'; then
+            export UNIX_CONFIG="
+            prometheus.exporter.unix \"node_exporter\" { }
+            prometheus.scrape \"unix\" {
+                targets         = prometheus.exporter.unix.node_exporter.targets
+                forward_to      = [prometheus.remote_write.default.receiver]
+                scrape_interval = \"$(bashio::config "prometheus_scrape_interval")\"
+            }"
+        fi
+
+        ## Enable prometheus.exporter.process
+        if bashio::config.true 'enable_process_component'; then
+            export PROCESS_CONFIG="
+            prometheus.exporter.process \"process_exporter\" {
+                matcher {
+                        name    = \"{{.Comm}}\"
+                        cmdline = [\".+\"]
+                    }
+            }
+            prometheus.scrape \"process\" {
+                targets         = prometheus.exporter.process.process_exporter.targets
+                forward_to      = [prometheus.remote_write.default.receiver]
+                scrape_interval = \"$(bashio::config "prometheus_scrape_interval")\"
+            }"
+        fi
     fi
-
-    # Create Config File
-    echo "$CONFIG" > $CONFIG_FILE
 
     # Add Loki to config if endpoint is supplied
-    if bashio::config.has_value 'loki_endpoint'; then
-        LOKI_CONFIG="
+    if bashio::config.true 'enable_loki'; then
+
+        bashio::config.require 'loki_endpoint' "You need to supply Loki endpoint"
+
+        if bashio::config.has_value 'servername_tag'; then
+            labels="{component = \"loki.source.journal\", servername = \"$(bashio::config "servername_tag")\"}"
+        else
+            labels="{component = \"loki.source.journal\"}"
+        fi
+
+        export LOKI_CONFIG="
         loki.relabel \"journal\" {
             forward_to = []
             rule {
@@ -74,7 +118,7 @@ else
         loki.source.journal \"read\"  {
             forward_to    = [loki.write.endpoint.receiver]
             relabel_rules = loki.relabel.journal.rules
-            labels        = {component = \"loki.source.journal\"}
+            labels        = $labels
             path          = \"/var/log/journal\"
         }
         loki.write \"endpoint\" {
@@ -82,6 +126,6 @@ else
                 url = \"$(bashio::config "loki_endpoint")\"
             }
         }"
-        echo "$LOKI_CONFIG" >> $CONFIG_FILE
     fi
+    envsubst < $CONFIG_TEMPLATE > $CONFIG_FILE
 fi

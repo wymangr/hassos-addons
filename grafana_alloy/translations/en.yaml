@@ -1,0 +1,35 @@
+---
+configuration:
+  enable_prometheus:
+    name: Enable Prometheus Metrics
+    description: Enable sending metrics to Prometheus. If enabled, prometheus_write_endpoint is required
+  prometheus_write_endpoint:
+    name: Prometheus Write Endpoint
+    description: Full URL to send metrics to.
+  enable_unix_component:
+    name: Enable Unix System Metrics
+    description: Enables prometheus.exporter.unix component to collect node_exporter metrics
+  enable_process_component:
+    name: Enable Process Metrics
+    description: Enables prometheus.exporter.process component to collect process_exporter metrics
+  prometheus_scrape_interval:
+    name: Prometheus Scrape Interval
+    description: How frequently to scrape the targets of this scrape configuration
+  servername_tag:
+    name: Servername Tag
+    description: servername tag value
+  instance_tag:
+    name: Instance Tag
+    description: Overwrite the default metric "instance" tag
+  enable_loki:
+    name: Enable Loki
+    description: Enable sending logs to Loki. If enabled, loki_endpoint is required
+  loki_endpoint:
+    name: Loki Endpoint
+    description: Full Loki URL to send logs to
+  overrid_config:
+    name: Override Config
+    description: If enabled, all other options will be ignored and you can supply your own Alloy config
+  overide_config_path:
+    name: Override Config Path
+    description: Path to Override Alloy config file
