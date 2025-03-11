@@ -27,9 +27,9 @@ configuration:
   loki_endpoint:
     name: Loki Endpoint
     description: Full Loki URL to send logs to
-  overrid_config:
+  override_config:
     name: Override Config
     description: If enabled, all other options will be ignored and you can supply your own Alloy config
-  overide_config_path:
+  override_config_path:
     name: Override Config Path
     description: Path to Override Alloy config file
