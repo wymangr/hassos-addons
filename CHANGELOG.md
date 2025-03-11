@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.3] - 2025-03-11
+
+- Remove "System protection" requirement. See [README.md](https://github.com/wymangr/hassos-addons/blob/main/grafana_alloy/README.md#protection-mode) for more details
+- Remove unused permissions in config.yaml
+- Add [prometheus.exporter.self](https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.self/) to collect metrics about Alloy
+- Bump Grafana Alloy version to [1.7.2](https://github.com/grafana/alloy/releases/tag/v1.7.2)
+- Remove unused dependencies in Dockerfile
+- Add Apparmor Profile
+
 ## [0.0.2] - 2025-03-09
 
 - Added `enable_prometheus` option

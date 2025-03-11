@@ -4,7 +4,7 @@ FROM $BUILD_FROM
 ARG \
   BUILD_ARCH \
   BUILD_VERSION \
-  GRAFANA_ALLOY_VERSION="1.7.1"
+  GRAFANA_ALLOY_VERSION="1.7.2"
 
 LABEL \
   io.hass.version=${BUILD_VERSION} \
@@ -15,7 +15,6 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends \
         unzip \
         gettext-base \
-        libsystemd-dev \
         curl && \
     rm -rf /var/lib/apt/lists/* && \
     apt clean && \

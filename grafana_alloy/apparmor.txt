@@ -1,0 +1,67 @@
+#include <tunables/global>
+
+profile grafana_alloy flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Capabilities
+  file,
+  signal (send) set=(kill,term,int,hup,cont),
+
+  # S6-Overlay
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /run/{,**} rwk,
+  /dev/tty rw,
+
+  # Bashio
+  /usr/lib/bashio/** ix,
+  /tmp/** rwk,
+
+  # Access to options.json and other files within your addon
+  /data/** rw,
+
+  # Start new profile for service
+  /usr/local/bin/alloy cx -> alloy,
+
+  profile alloy flags=(attach_disconnected,mediate_deleted) {
+    #include <abstractions/base>
+    ptrace (trace,read),
+
+    # Receive signals from S6-Overlay
+    signal (receive) peer=*_grafana_alloy,
+
+    # Access to options.json and other files within your addon
+    /data/** rw,
+
+    # Access to mapped volumes specified in config.json
+    /share/** rw,
+
+    # Temp files (Loki)
+    /tmp/.positions.* rw,
+
+    # certificates
+    /etc/ssl/certs/{,**} r,
+    /usr/share/ca-certificates/{,**} r,
+
+    # Access required for service functionality
+    /usr/local/bin/alloy rm,
+    /etc/alloy/config.alloy r,
+    /var/log/journal/{,**} r,
+    /etc/nsswitch.conf r,
+    /proc/{,**} r,
+    /sys/** r,
+    /etc/hosts r,
+    /etc/resolv.conf r,
+    /bin/bash rix,
+    /bin/echo ix,
+    /etc/passwd r,
+    /dev/tty rw,
+  }
+}

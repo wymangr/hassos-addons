@@ -10,17 +10,38 @@ Currently, this add-on supports the following components:
 - [loki.write](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write/) - Sends logs to Loki instance.
 - [loki.source.journal](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.journal/) - Collects Home Assistant Journal logs to send to Loki.
 
-**Note**: Because this add-on requires access to host level data (CPU, Memory, Disk, etc), Disabling Protection mode is required. Please inspect the code of this add-on before you run it.
-
 ## Installation
 
 1. Add [repository](https://github.com/wymangr/hassos-addons) to Home Assistant.
 1. Search for "Grafana Alloy" in the Home Assistant add-on store and install it.
-1. Disable "Protection mode" in the add-on panel.
+1. Disable "Protection mode" in the add-on panel. (Optional, [see below for more details](#protection-mode))
 1. Update configuration on the add-on "Configuration" Tab. See options below.
 1. Start the add-on.
 1. Check the `Logs` to confirm the add-on started successfully.
 1. You can also visit the Grafana Alloy Web UI by visiting `http://<homeassistnat_ip>:12345` in your browser.
+
+## Protection Mode
+
+Disabling protection mode is optional, however there are a few things that I found don't work without disabling it. Most the limitations are around host processes. Per the Home Assistant Docs: _"Allow the container to run on the host PID namespace. Works only for not protected add-ons."_
+
+Note: These are just the limitations I found, there may be other incorrect or missing metrics.
+
+**Only disable the protection mode if you know, need AND trust the source of this add-on.** Always review the code of an add-on before disabling protection mode.
+
+### Limitations:
+
+**prometheus.exporter.process**
+
+- If Protection mode is enabled, the only process that will be collected is the one for Alloy. There will be no metrics for host processes.
+
+**prometheus.exporter.unix**
+
+- Process related metrics won't display any host process information with protection mode enabled.
+- Disk metrics will only show mount data for the Alloy add-on, no host mount data will be collected with protection mode endabled.
+
+**loki.source.journal**
+
+No limitations that I found.
 
 ## Configuration
 
@@ -49,4 +70,14 @@ If `override_config` is true and a valid Alloy config file is supplied in `overi
 - [x] Add more customization options (Enable/disable components, scrape_interval, etc..)
 - [ ] Add Github workflows
 - [ ] Build and publish a docker image so users don't have to build the image on every install
-- [ ] Verify all permissions added to `config.yaml` are required and remove unneeded ones
+- [x] Verify all permissions added to `config.yaml` are required and remove unneeded ones
+
+## Example Data
+
+https://grafana.com/grafana/dashboards/1860-node-exporter-full/
+![prometheus.exporter.unix Example](images/prometheus.exporter.unix.png)
+
+https://grafana.com/grafana/dashboards/8378-system-processes-metrics/
+![prometheus.exporter.process Example](images/prometheus.exporter.process.png)
+
+![Loki Log Example](images/loki.png)

@@ -1,8 +1,5 @@
 #!/usr/bin/env bashio
 
-bashio::require.unprotected
-echo "${SUPERVISOR_TOKEN}" > '/run/home-assistant.token'
-
 readonly CONFIG_DIR=/etc/alloy
 readonly CONFIG_FILE="${CONFIG_DIR}/config.alloy"
 readonly CONFIG_TEMPLATE="${CONFIG_DIR}/config.alloy.template"
@@ -82,6 +79,14 @@ else
                 scrape_interval = \"$(bashio::config "prometheus_scrape_interval")\"
             }"
         fi
+
+        export ALLOY_CONFIG="
+        prometheus.exporter.self \"alloy\" { }
+        prometheus.scrape \"self\" {
+            targets         = prometheus.exporter.self.alloy.targets
+            forward_to      = [prometheus.remote_write.default.receiver]
+            scrape_interval = \"$(bashio::config "prometheus_scrape_interval")\"
+        }"
     fi
 
     # Add Loki to config if endpoint is supplied
@@ -113,6 +118,11 @@ else
             rule {
                 source_labels = [\"__journal_container_name\"]
                 target_label  = \"container_name\"
+            }
+            rule {
+                action = \"drop\"
+                source_labels = [\"syslog_identifier\"]
+                regex = \"audit\"
             }
         }
         loki.source.journal \"read\"  {
