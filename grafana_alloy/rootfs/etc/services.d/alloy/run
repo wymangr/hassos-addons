@@ -4,9 +4,9 @@
 # Runs the Grafana Alloy
 # ==============================================================================
 
-OVERRIDE_CONFIG=$(bashio::config 'overide_config_path')
+OVERRIDE_CONFIG=$(bashio::config 'override_config_path')
 
-if bashio::config.false 'overrid_config'; then
+if bashio::config.false 'override_config'; then
     CONFIG_FILE=/etc/alloy/config.alloy
 else
     CONFIG_FILE=$OVERRIDE_CONFIG
