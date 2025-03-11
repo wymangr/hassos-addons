@@ -37,7 +37,7 @@ Note: These are just the limitations I found, there may be other incorrect or mi
 **prometheus.exporter.unix**
 
 - Process related metrics won't display any host process information with protection mode enabled.
-- Disk metrics will only show mount data for the Alloy add-on, no host mount data will be collected with protection mode endabled.
+- Disk metrics will only show mount data for the Alloy add-on, no host mount data will be collected with protection mode enabled.
 
 **loki.source.journal**
 
@@ -56,10 +56,10 @@ No limitations that I found.
 | `instance_tag`               | Overwrite the default metric "instance" tag.                                             |                                     | No                          |
 | `enable_loki`                | Enable sending logs to Loki. If enabled, loki_endpoint is required.                      | false                               | No                          |
 | `loki_endpoint`              | Full Loki URL to send logs to.                                                           | http://loki:3100/api/v1/push        | No                          |
-| `overrid_config`             | If enabled, all other options will be ignored and you can supply your own Alloy config.  | false                               | No                          |
-| `overide_config_path`        | Path to Override Alloy config file.                                                      | /config/alloy/example.alloy         | If `overrid_config`=true    |
+| `override_config`             | If enabled, all other options will be ignored and you can supply your own Alloy config.  | false                               | No                          |
+| `override_config_path`        | Path to Override Alloy config file.                                                      | /config/alloy/example.alloy         | If `override_config`=true    |
 
-If `override_config` is true and a valid Alloy config file is supplied in `overide_config_path`, all other options will be ignored.
+If `override_config` is true and a valid Alloy config file is supplied in `override_config_path`, all other options will be ignored.
 
 ## Support
 

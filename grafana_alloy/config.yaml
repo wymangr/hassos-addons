@@ -23,8 +23,8 @@ options:
   servername_tag: "HomeAssistant"
   enable_loki: false
   loki_endpoint: http://loki:3100/api/v1/push
-  overrid_config: false
-  overide_config_path: "/config/alloy/example.alloy"
+  override_config: false
+  override_config_path: "/config/alloy/example.alloy"
 schema:
   enable_prometheus: bool
   prometheus_write_endpoint: str?
@@ -35,5 +35,5 @@ schema:
   instance_tag: str?
   enable_loki: bool
   loki_endpoint: str?
-  overrid_config: bool
-  overide_config_path: str?
+  override_config: bool
+  override_config_path: str?
