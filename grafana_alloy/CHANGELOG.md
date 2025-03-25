@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.4] - 2025-03-25
+
+- Bump Grafana Alloy version from `1.7.2` to [1.7.5](https://github.com/grafana/alloy/releases/tag/v1.7.5)
+- Bump base image from `7.7.1` to `7.8.0`
+- Fix missing config mount for override_config [#3](https://github.com/wymangr/hassos-addons/issues/3)
+
 ## [0.0.3] - 2025-03-11
 
 - Remove "System protection" requirement. See [README.md](https://github.com/wymangr/hassos-addons/blob/main/grafana_alloy/README.md#protection-mode) for more details

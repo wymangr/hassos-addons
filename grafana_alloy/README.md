@@ -56,8 +56,8 @@ No limitations that I found.
 | `instance_tag`               | Overwrite the default metric "instance" tag.                                             |                                     | No                          |
 | `enable_loki`                | Enable sending logs to Loki. If enabled, loki_endpoint is required.                      | false                               | No                          |
 | `loki_endpoint`              | Full Loki URL to send logs to.                                                           | http://loki:3100/api/v1/push        | No                          |
-| `override_config`             | If enabled, all other options will be ignored and you can supply your own Alloy config.  | false                               | No                          |
-| `override_config_path`        | Path to Override Alloy config file.                                                      | /config/alloy/example.alloy         | If `override_config`=true    |
+| `override_config`            | If enabled, all other options will be ignored and you can supply your own Alloy config.  | false                               | No                          |
+| `override_config_path`       | Path to Override Alloy config file. HA config directory is counted to /config.           | /config/alloy/example.alloy         | If `override_config`=true   |
 
 If `override_config` is true and a valid Alloy config file is supplied in `override_config_path`, all other options will be ignored.
 
