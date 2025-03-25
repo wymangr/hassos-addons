@@ -1,7 +1,7 @@
 ---
 name: "Grafana Alloy"
 description: "Grafana Alloy"
-version: "0.0.3"
+version: "0.0.4"
 slug: "grafana_alloy"
 arch:
   - aarch64
@@ -13,6 +13,9 @@ ports_description:
 journald: true
 host_network: true
 host_pid: true
+map:
+  - type: homeassistant_config
+    path: /config
 
 options:
   enable_prometheus: true
