@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.0.5] - 2025-03-25
+
+- Fix apparmor config for config directory [#3](https://github.com/wymangr/hassos-addons/issues/3)
+
 ## [0.0.4] - 2025-03-25
 
 - Bump Grafana Alloy version from `1.7.2` to [1.7.5](https://github.com/grafana/alloy/releases/tag/v1.7.5)

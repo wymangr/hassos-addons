@@ -52,6 +52,7 @@ profile grafana_alloy flags=(attach_disconnected,mediate_deleted) {
 
     # Access required for service functionality
     /usr/local/bin/alloy rm,
+    /config/** rw,
     /etc/alloy/config.alloy r,
     /var/log/journal/{,**} r,
     /etc/nsswitch.conf r,
