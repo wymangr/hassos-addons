@@ -1,7 +1,7 @@
 ---
 name: "Grafana Alloy"
 description: "Grafana Alloy"
-version: "0.0.4"
+version: "0.0.5"
 slug: "grafana_alloy"
 arch:
   - aarch64
