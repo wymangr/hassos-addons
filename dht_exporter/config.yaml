@@ -1,0 +1,28 @@
+---
+name: "DHT Exporter"
+description: "Prometheus Exporter for DHT Sensor Temperature & Humidity Sensor"
+version: "0.0.1"
+slug: "dht_exporter"
+init: false
+arch:
+  - aarch64
+ports:
+  8182/tcp:
+ports_description:
+  8182/tcp: Exporter Web Port
+gpio: true
+privileged:
+  - SYS_RAWIO
+  - SYS_ADMIN
+
+options:
+  pin: 4
+  sensor: "2302"
+  fahrenheit: False
+  pi_chip: BCM2711
+schema:
+  pin: int?
+  sensor: list(2302|22|11)
+  location: str
+  fahrenheit: bool
+  pi_chip: list(BCM2708|BCM2709|BCM2711|BCM2712|BCM2835|BCM2837)

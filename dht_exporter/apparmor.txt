@@ -1,0 +1,64 @@
+#include <tunables/global>
+
+profile dht_exporter flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Capabilities
+  file,
+  signal (send) set=(kill,term,int,hup,cont),
+
+  # S6-Overlay
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /run/{,**} rwk,
+  /dev/tty rw,
+
+  # Bashio
+  /usr/lib/bashio/** ix,
+  /tmp/** rwk,
+
+  # Access to options.json and other files within your addon
+  /data/** rw,
+
+  # Allow mounting cpuinfo
+  capability sys_admin,
+  /tmp/cpuinfo rw,
+  /proc/cpuinfo rw,
+  mount /tmp/cpuinfo -> /proc/cpuinfo,
+
+  # Start new profile for service
+  /src/.venv/bin/gunicorn cx -> gunicorn,
+
+  profile gunicorn flags=(attach_disconnected,mediate_deleted) {
+    #include <abstractions/base>
+
+    # Access to GPIO
+    capability sys_rawio,
+    /dev/gpiomem rw,
+    /proc/{,**} r,
+
+    # Receive signals from S6-Overlay
+    signal (receive) peer=*_dht_exporter,
+
+    # Access required for service functionality
+    /src/.venv/bin/gunicorn r,
+    /bin/bash rix,
+    /bin/echo ix,
+    /etc/passwd r,
+    /dev/tty rw,
+    /src/{,**} rwm,
+    /tmp/{,**} rw,
+    /var/tmp/{,**} rw,
+    /etc/ssl/openssl.cnf rw,
+    /usr/bin/python3.11 rwm,
+    /usr/bin/dash rwix,
+    /usr/bin/rm rwix,
+  }
+}

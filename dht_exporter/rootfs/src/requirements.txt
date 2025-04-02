@@ -1,0 +1,7 @@
+adafruit-circuitpython-dht==4.0.7
+RPi.GPIO==0.7.1
+prometheus_client==0.21.1
+gunicorn==21.2.0
+uvicorn==0.23.2
+tenacity==9.0.0
+fastapi==0.115.12

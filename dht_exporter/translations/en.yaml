@@ -1,0 +1,17 @@
+---
+configuration:
+  pin:
+    name: GPIO Pin
+    description: GPIO pin the DHT sensor is connected to
+  sensor:
+    name: Sensor
+    description: The sensor being used (2302,22,11)
+  location:
+    name: Location Tag
+    description: Location tag for the prometheus metric
+  fahrenheit:
+    name: Temperature Fahrenheit
+    description: Display temperature in Fahrenheit. Defaults to Celsius.
+  pi_chip:
+    name: Raspberry Pi Processor
+    description: Hardware ID for Raspberry Pi Processor
