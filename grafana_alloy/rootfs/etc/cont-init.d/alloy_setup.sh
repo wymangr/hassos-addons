@@ -100,6 +100,22 @@ else
             labels="{component = \"loki.source.journal\"}"
         fi
 
+        if bashio::config.true 'enable_loki_syslog'; then
+            syslog_config="
+        loki.source.syslog \"syslog\" {
+            listener {
+                address  = \"0.0.0.0:5601\"
+                labels   = { component = \"loki.source.syslog\", protocol = \"tcp\" }
+            }
+            listener {
+                address  = \"0.0.0.0:5514\"
+                protocol = \"udp\"
+                labels   = { component = \"loki.source.syslog\", protocol = \"udp\"}
+            }
+            forward_to = [loki.write.endpoint.receiver]
+        }"
+        fi
+
         export LOKI_CONFIG="
         loki.relabel \"journal\" {
             forward_to = []
@@ -131,6 +147,7 @@ else
             labels        = $labels
             path          = \"/var/log/journal\"
         }
+        $syslog_config
         loki.write \"endpoint\" {
             endpoint {
                 url = \"$(bashio::config "loki_endpoint")\"

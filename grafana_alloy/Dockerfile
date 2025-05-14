@@ -4,7 +4,7 @@ FROM $BUILD_FROM
 ARG \
   BUILD_ARCH \
   BUILD_VERSION \
-  GRAFANA_ALLOY_VERSION="1.7.5"
+  GRAFANA_ALLOY_VERSION="1.8.3"
 
 LABEL \
   io.hass.version=${BUILD_VERSION} \
@@ -28,6 +28,7 @@ RUN apt-get update && \
     rm -rf /tmp/alloy*
 
 COPY rootfs /
+RUN chmod +x /run.sh /etc/cont-init.d/alloy_setup.sh /etc/services.d/alloy/run
 
 ENTRYPOINT []
 CMD ["/run.sh"]
