@@ -114,6 +114,8 @@ else
             }
             forward_to = [loki.write.endpoint.receiver]
         }"
+        else
+            syslog_config=""
         fi
 
         export LOKI_CONFIG="
