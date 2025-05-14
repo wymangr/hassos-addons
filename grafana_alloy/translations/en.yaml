@@ -33,3 +33,6 @@ configuration:
   override_config_path:
     name: Override Config Path
     description: Path to Override Alloy config file
+  enable_loki_syslog:
+    name: Enable Loki Syslog
+    description: Listen for syslog messages over UDP or TCP connections and forwards them to loki

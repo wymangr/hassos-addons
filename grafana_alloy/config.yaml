@@ -7,9 +7,13 @@ arch:
   - aarch64
   - amd64
 ports:
-  12345/tcp:
+  12346/tcp:
+  5514/udp:
+  5601/tcp:
 ports_description:
-  12345/tcp: Alloy web server
+  12346/tcp: Alloy web server
+  5514/udp: Alloy UDP syslog
+  5601/tcp: Alloy TCP syslog
 journald: true
 host_network: true
 host_pid: true
@@ -28,6 +32,7 @@ options:
   loki_endpoint: http://loki:3100/api/v1/push
   override_config: false
   override_config_path: "/config/alloy/example.alloy"
+  enable_loki_syslog: false
 schema:
   enable_prometheus: bool
   prometheus_write_endpoint: str?
@@ -40,3 +45,4 @@ schema:
   loki_endpoint: str?
   override_config: bool
   override_config_path: str?
+  enable_loki_syslog: bool

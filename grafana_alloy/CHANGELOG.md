@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6] - 2025-14-25
+
+- Bump Grafana Alloy version from `1.7.5` to [1.8.3](https://github.com/grafana/alloy/releases/tag/v1.8.3)
+- Bump base image from `7.8.0` to `7.8.3`
+- Opened ports `5514` (UDP) and `5601` (TPC) for loki.source.syslog
+- Added option to enable basic Loki Syslog source
+
 ## [0.0.5] - 2025-03-25
 
 - Fix apparmor config for config directory [#3](https://github.com/wymangr/hassos-addons/issues/3)
