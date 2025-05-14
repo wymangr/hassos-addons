@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.0.6] - 2025-14-25
+## [0.0.6] - 2025-05-14
 
 - Bump Grafana Alloy version from `1.7.5` to [1.8.3](https://github.com/grafana/alloy/releases/tag/v1.8.3)
 - Bump base image from `7.8.0` to `7.8.3`
@@ -40,3 +40,5 @@
 ## [0.0.1] - 2025-03-08
 
 - Initial release
+
+Initial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial releaseInitial release
