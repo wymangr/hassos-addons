@@ -7,11 +7,11 @@ arch:
   - aarch64
   - amd64
 ports:
-  12346/tcp:
+  12345/tcp:
   5514/udp:
   5601/tcp:
 ports_description:
-  12346/tcp: Alloy web server
+  12345/tcp: Alloy web server
   5514/udp: Alloy UDP syslog
   5601/tcp: Alloy TCP syslog
 journald: true
