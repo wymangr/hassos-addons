@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.0.8] - 2026-01-26
+
+- Bump Grafana Alloy version to [1.12.2](https://github.com/grafana/alloy/releases/tag/v1.12.2)
+- Bump base image from `7.8.3` to `9.1.0`
+
 ## [0.0.7] - 2025-05-14
 
 - Bugfix - Won't start if the `enable_loki_syslog` not enabled
