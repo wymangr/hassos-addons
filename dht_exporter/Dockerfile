@@ -14,12 +14,14 @@ WORKDIR /src
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        python3.11 \
+        python3.13 \
         python3-pip \
-        python3.11-dev \
-        python3.11-venv \
+        python3.13-dev \
+        python3.13-venv \
+        build-essential \
         gcc-aarch64-linux-gnu \
-        libgpiod2 && \
+        binutils-aarch64-linux-gnu \
+        libgpiod3 && \
     rm -rf /var/lib/apt/lists/* && \
     apt clean && \
     python3 -m venv .venv

@@ -2,7 +2,7 @@
 
 This is a custom Prometheus exporter add-on for Home Assistant. It's designed for HA running on a Raspberry Pi with a DHT Temperature & Humidity Sensor.
 
-It should work with [DHT11, DHT22 and AM2302 Sensors](https://learn.adafruit.com/dht/overview)
+It should work with [DHT11, DHT22 and AM2302 Sensors](https://learn.adafruit.com/dht/overview) and has been confirmed working on a Raspberry Pi 4. 
 
 ### Metrics
 

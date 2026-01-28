@@ -1,7 +1,7 @@
 ---
 name: "DHT Exporter"
 description: "Prometheus Exporter for DHT Sensor Temperature & Humidity Sensor"
-version: "0.0.2"
+version: "0.0.3"
 slug: "dht_exporter"
 init: false
 arch:
