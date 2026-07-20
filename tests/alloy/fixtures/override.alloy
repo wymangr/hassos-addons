@@ -1,0 +1,5 @@
+// Minimal valid Alloy config used to exercise the override_config code path.
+logging {
+	level  = "info"
+	format = "logfmt"
+}

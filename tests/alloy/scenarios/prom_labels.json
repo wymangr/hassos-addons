@@ -1,0 +1,14 @@
+{
+  "enable_prometheus": true,
+  "prometheus_write_endpoint": "http://prometheus:9090/api/v1/write",
+  "enable_unix_component": true,
+  "enable_process_component": true,
+  "prometheus_scrape_interval": "30s",
+  "servername_tag": "living-room-pi",
+  "instance_tag": "ha-instance-01",
+  "enable_loki": false,
+  "loki_endpoint": "http://loki:3100/api/v1/push",
+  "enable_loki_syslog": false,
+  "override_config": false,
+  "override_config_path": "/config/alloy/example.alloy"
+}
