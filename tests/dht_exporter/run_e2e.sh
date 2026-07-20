@@ -64,7 +64,7 @@ start_server() {
 #   $1 fahrenheit setting ("True"/"False")
 #   $2 expected scale word in the metric HELP text ("celsius"/"fahrenheit")
 run_scale() {
-	local fahrenheit="$1" scale="$2"
+	local fahrenheit="$1" scale="$2" scale_fail=0
 	echo "::group::dht exporter (FAHRENHEIT=${fahrenheit}, expect ${scale})"
 
 	if ! start_server "${fahrenheit}"; then
@@ -86,6 +86,7 @@ run_scale() {
 	if ! grep -q "dht_exporter_error" /tmp/metrics.out; then
 		echo "FAIL[${scale}]: dht_exporter_error metric family missing"
 		rc_total=1
+		scale_fail=1
 	fi
 
 	# The TEMPERATURE gauge HELP text is "Temperature in ${scale}", which proves
@@ -93,6 +94,7 @@ run_scale() {
 	if ! grep -q "Temperature in ${scale}" /tmp/metrics.out; then
 		echo "FAIL[${scale}]: expected HELP text 'Temperature in ${scale}' not found"
 		rc_total=1
+		scale_fail=1
 	fi
 
 	# Confirm we get Prometheus exposition format back.
@@ -102,23 +104,30 @@ run_scale() {
 	if ! printf '%s' "${content_type}" | grep -qi "text/plain"; then
 		echo "FAIL[${scale}]: unexpected content type for /metrics: ${content_type}"
 		rc_total=1
+		scale_fail=1
 	fi
 
-	# Scrape several times to exercise both the successful-reading and the
-	# missing-data (error) branches of the mock sensor.
+	# run_app.py returns fixed, valid readings, so every scrape must expose a
+	# temperature and humidity sample. Assert we actually see them (hard fail),
+	# which confirms the success path — not just HELP/TYPE lines — is exercised.
 	local i saw_reading=0 body
-	for ((i = 0; i < 20; i++)); do
+	for ((i = 0; i < 5; i++)); do
 		body="$(curl -sf "${BASE_URL}/metrics" || true)"
 		if printf '%s' "${body}" | grep -Eq "dht_exporter_(temperature|humidity)\{"; then
 			saw_reading=1
+			break
 		fi
 	done
 	if [[ "${saw_reading}" -ne 1 ]]; then
-		echo "WARN[${scale}]: never observed a temperature/humidity sample across 20 scrapes (mock is random); error path still validated"
+		echo "FAIL[${scale}]: no temperature/humidity samples exposed (success path not exercised)"
+		rc_total=1
+		scale_fail=1
 	fi
 
 	stop_server
-	echo "PASS[${scale}]: exporter served valid ${scale} metrics"
+	if [[ "${scale_fail}" -eq 0 ]]; then
+		echo "PASS[${scale}]: exporter served valid ${scale} metrics"
+	fi
 	echo "::endgroup::"
 }
 
