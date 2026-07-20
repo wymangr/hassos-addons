@@ -3,10 +3,11 @@
 #
 # The production app (app.py) imports Raspberry Pi hardware libraries (board,
 # adafruit_dht) that only import on real Pi hardware, so it cannot run in CI.
-# The add-on ships app_test.py, a hardware-free mock that exercises the real
-# FastAPI application, Prometheus metric registration, temperature scaling and
-# error handling. This test launches that app and scrapes /metrics like a real
-# Prometheus server would.
+# Rather than depend on the local-only (gitignored) app_test.py, this test uses
+# run_app.py, a committed launcher that injects fake board/adafruit_dht modules
+# and then imports the REAL app.py. That way CI exercises the actual production
+# code (metrics endpoint, temperature scaling, error handling, Prometheus
+# output) with only the hardware leaf faked, and depends on nothing gitignored.
 #
 # It runs the app twice: once in Celsius mode and once in Fahrenheit mode, to
 # cover the temperature-scale branch (the metric HELP text and the fahrenheit
@@ -15,15 +16,15 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SRC_DIR="${REPO_ROOT}/dht_exporter/rootfs/src"
+TEST_DIR="${REPO_ROOT}/tests/dht_exporter"
 HOST="127.0.0.1"
 PORT="8182"
 BASE_URL="http://${HOST}:${PORT}"
 
-cd "${SRC_DIR}" || {
-	echo "FAIL: source directory not found: ${SRC_DIR}"
+if [[ ! -f "${TEST_DIR}/run_app.py" ]]; then
+	echo "FAIL: launcher not found: ${TEST_DIR}/run_app.py"
 	exit 1
-}
+fi
 
 rc_total=0
 SERVER_PID=""
@@ -41,10 +42,10 @@ trap stop_server EXIT
 # Returns non-zero if the server never becomes ready.
 start_server() {
 	local fahrenheit="$1"
-	# Pass --app-dir explicitly so uvicorn can import app_test regardless of the
-	# current working directory / sys.path defaults on the runner.
+	# run_app injects fake hardware modules and imports the real app.py.
+	# --app-dir points uvicorn at the committed launcher.
 	LOCATION="ci-testroom" PIN="4" SENSOR="2302" FAHRENHEIT="${fahrenheit}" \
-		python -m uvicorn app_test:app --app-dir "${SRC_DIR}" \
+		python -m uvicorn run_app:app --app-dir "${TEST_DIR}" \
 		--host "${HOST}" --port "${PORT}" \
 		>/tmp/dht_server.log 2>&1 &
 	SERVER_PID=$!
