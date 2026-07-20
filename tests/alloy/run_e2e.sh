@@ -35,7 +35,9 @@ readonly OPTIONS_CACHE_FILE="${CACHE_DIR}/addons.self.options.config.cache"
 rc_total=0
 
 # Run the add-on setup script with a given options file.
-# Populates the global `setup_rc` with its exit code.
+# Populates the global `setup_rc` with its exit code. Output is captured to
+# /tmp/setup.log; callers decide whether to display it (e.g. only on an
+# unexpected result), so negative tests don't print alarming output on success.
 run_setup() {
 	local options_file="$1"
 	# Seed bashio's app-config cache with this scenario's options so that
@@ -49,19 +51,22 @@ run_setup() {
 	else
 		setup_rc=$?
 	fi
-	cat /tmp/setup.log
 }
 
 # Scenario that is expected to generate a valid config.
-# Optional third arg: a substring that must appear in the generated config
-# (used to assert scenario-specific blocks were rendered, e.g. "loki.write").
+#   $3 required_substrs : space-separated substrings that MUST appear (optional)
+#   $4 forbidden_substrs: space-separated substrings that must NOT appear (optional)
+# (substrings themselves cannot contain spaces).
 expect_valid() {
-	local name="$1" options_file="$2" required_substr="${3:-}"
+	local name="$1" options_file="$2" required_substrs="${3:-}" forbidden_substrs="${4:-}"
 	echo "::group::scenario ${name} (expect valid)"
 	run_setup "${options_file}"
 
 	if [[ ${setup_rc} -ne 0 ]]; then
 		echo "FAIL[${name}]: alloy_setup.sh exited ${setup_rc} but was expected to succeed"
+		echo "----- setup output -----"
+		cat /tmp/setup.log
+		echo "------------------------"
 		rc_total=1
 		echo "::endgroup::"
 		return
@@ -76,8 +81,7 @@ expect_valid() {
 
 	# `alloy validate` treats an empty/whitespace-only file as valid, which would
 	# mask a broken config-generation run (e.g. options not injected). Require
-	# real content and at least the prometheus.remote_write block, which every
-	# "expect valid" scenario here enables.
+	# real content before doing anything else.
 	if [[ -z "$(tr -d '[:space:]' < "${GENERATED_CONFIG}")" ]]; then
 		echo "FAIL[${name}]: generated config is empty (options were not applied)"
 		rc_total=1
@@ -85,19 +89,24 @@ expect_valid() {
 		return
 	fi
 
-	if ! grep -q "prometheus.remote_write" "${GENERATED_CONFIG}"; then
-		echo "FAIL[${name}]: generated config is missing the prometheus.remote_write block"
-		rc_total=1
-		echo "::endgroup::"
-		return
-	fi
+	local substr
+	for substr in ${required_substrs}; do
+		if ! grep -qF "${substr}" "${GENERATED_CONFIG}"; then
+			echo "FAIL[${name}]: generated config is missing expected content: ${substr}"
+			rc_total=1
+			echo "::endgroup::"
+			return
+		fi
+	done
 
-	if [[ -n "${required_substr}" ]] && ! grep -qF "${required_substr}" "${GENERATED_CONFIG}"; then
-		echo "FAIL[${name}]: generated config is missing expected content: ${required_substr}"
-		rc_total=1
-		echo "::endgroup::"
-		return
-	fi
+	for substr in ${forbidden_substrs}; do
+		if grep -qF "${substr}" "${GENERATED_CONFIG}"; then
+			echo "FAIL[${name}]: generated config unexpectedly contains: ${substr}"
+			rc_total=1
+			echo "::endgroup::"
+			return
+		fi
+	done
 
 	echo "----- generated config -----"
 	cat "${GENERATED_CONFIG}"
@@ -113,20 +122,21 @@ expect_valid() {
 }
 
 # Scenario that is expected to make the setup script exit non-zero (validation
-# guard rails, e.g. a required option left empty).
+# guard rails, e.g. a required option left empty). The setup output (which
+# includes intentional FATAL messages) is captured and only shown if the test
+# does NOT behave as expected, to avoid alarming-looking output on success.
 expect_setup_failure() {
 	local name="$1" options_file="$2"
 	echo "::group::scenario ${name} (expect setup failure)"
-	echo "NOTE: this is a NEGATIVE test. The setup script is expected to abort,"
-	echo "      so the FATAL messages below are EXPECTED and indicate success."
-	echo "----- setup output (expected to abort) -----"
 	run_setup "${options_file}"
-	echo "--------------------------------------------"
 
 	if [[ ${setup_rc} -ne 0 ]]; then
-		echo "PASS[${name}]: alloy_setup.sh correctly failed as expected (rc=${setup_rc})"
+		echo "PASS[${name}]: setup correctly rejected the invalid options"
 	else
 		echo "FAIL[${name}]: alloy_setup.sh succeeded but was expected to fail"
+		echo "----- setup output -----"
+		cat /tmp/setup.log
+		echo "------------------------"
 		rc_total=1
 	fi
 	echo "::endgroup::"
@@ -137,18 +147,18 @@ expect_setup_failure() {
 # validate step actually catches bad config for the pinned Alloy version (i.e.
 # it is not silently passing everything), which is what guards against a bad
 # config-generation change or an Alloy version bump that drops an option.
+# The validator's error output is captured and only shown if the test does NOT
+# behave as expected.
 expect_invalid_config() {
 	local name="invalid_config"
 	echo "::group::scenario ${name} (expect alloy validate to reject)"
-	echo "NOTE: this is a NEGATIVE test. 'alloy validate' is expected to FAIL"
-	echo "      on the intentionally invalid fixture below."
-	echo "----- alloy validate output (expected to error) -----"
-	if alloy validate "${FIXTURES_DIR}/invalid.alloy"; then
-		echo "-----------------------------------------------------"
+	if alloy validate "${FIXTURES_DIR}/invalid.alloy" >/tmp/validate.log 2>&1; then
 		echo "FAIL[${name}]: alloy validate ACCEPTED an invalid config (validation has no teeth!)"
+		echo "----- alloy validate output -----"
+		cat /tmp/validate.log
+		echo "---------------------------------"
 		rc_total=1
 	else
-		echo "-----------------------------------------------------"
 		echo "PASS[${name}]: alloy validate correctly rejected the invalid config"
 	fi
 	echo "::endgroup::"
@@ -164,6 +174,9 @@ expect_override() {
 
 	if [[ ${setup_rc} -ne 0 ]]; then
 		echo "FAIL[${name}]: alloy_setup.sh exited ${setup_rc} but was expected to succeed"
+		echo "----- setup output -----"
+		cat /tmp/setup.log
+		echo "------------------------"
 		rc_total=1
 		echo "::endgroup::"
 		return
@@ -178,12 +191,20 @@ expect_override() {
 	echo "::endgroup::"
 }
 
-expect_valid          "default"          "${SCEN_DIR}/default.json"
-expect_valid          "prometheus_labels" "${SCEN_DIR}/prom_labels.json"  "ha-instance-01"
-expect_valid          "loki"             "${SCEN_DIR}/loki.json"           "loki.write"
-expect_valid          "loki_syslog"      "${SCEN_DIR}/loki_syslog.json"    "loki.source.syslog"
-expect_valid          "full"             "${SCEN_DIR}/full.json"           "loki.source.syslog"
-expect_setup_failure  "missing_endpoint" "${SCEN_DIR}/missing_endpoint.json"
+expect_valid          "default"           "${SCEN_DIR}/default.json"          "prometheus.remote_write"
+expect_valid          "prometheus_labels" "${SCEN_DIR}/prom_labels.json"      "prometheus.remote_write ha-instance-01"
+expect_valid          "loki"              "${SCEN_DIR}/loki.json"             "prometheus.remote_write loki.write"
+expect_valid          "loki_syslog"       "${SCEN_DIR}/loki_syslog.json"      "prometheus.remote_write loki.source.syslog"
+expect_valid          "full"              "${SCEN_DIR}/full.json"             "prometheus.remote_write loki.source.syslog"
+# Loki only (Prometheus disabled): must have Loki, must NOT have remote_write.
+expect_valid          "loki_only"         "${SCEN_DIR}/loki_only.json"        "loki.write" "prometheus.remote_write"
+# No servername_tag: exercises the else-branches (no external_labels block, and
+# Loki journal labels without a servername), so "servername" must not appear.
+expect_valid          "no_servername"     "${SCEN_DIR}/no_servername.json"    "prometheus.remote_write loki.source.journal" "servername external_labels"
+# Exporters disabled: unix/process scrape blocks must be omitted, self stays.
+expect_valid          "no_exporters"      "${SCEN_DIR}/no_exporters.json"     "prometheus.remote_write prometheus.exporter.self" "prometheus.exporter.unix prometheus.exporter.process"
+expect_setup_failure  "missing_endpoint"  "${SCEN_DIR}/missing_endpoint.json"
+expect_setup_failure  "override_empty_path" "${SCEN_DIR}/override_empty_path.json"
 expect_invalid_config
 expect_override
 
