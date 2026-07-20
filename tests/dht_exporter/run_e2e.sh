@@ -41,8 +41,11 @@ trap stop_server EXIT
 # Returns non-zero if the server never becomes ready.
 start_server() {
 	local fahrenheit="$1"
+	# Pass --app-dir explicitly so uvicorn can import app_test regardless of the
+	# current working directory / sys.path defaults on the runner.
 	LOCATION="ci-testroom" PIN="4" SENSOR="2302" FAHRENHEIT="${fahrenheit}" \
-		python -m uvicorn app_test:app --host "${HOST}" --port "${PORT}" \
+		python -m uvicorn app_test:app --app-dir "${SRC_DIR}" \
+		--host "${HOST}" --port "${PORT}" \
 		>/tmp/dht_server.log 2>&1 &
 	SERVER_PID=$!
 

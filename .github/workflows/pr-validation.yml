@@ -72,8 +72,12 @@ jobs:
           # by alloy-config-e2e).
           - addon: dht_exporter
             arch: aarch64
+            platform: linux/arm64
+            build_from: ghcr.io/hassio-addons/debian-base/aarch64:9.1.0
           - addon: grafana_alloy
             arch: aarch64
+            platform: linux/arm64
+            build_from: ghcr.io/hassio-addons/debian-base/aarch64:9.1.0
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -81,11 +85,16 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Build add-on (test only, no push)
-        uses: home-assistant/builder@master
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build add-on image (test only, no push)
+        uses: docker/build-push-action@v6
         with:
-          args: |
-            --${{ matrix.arch }} \
-            --target /data/${{ matrix.addon }} \
-            --test \
-            --docker-hub "local"
+          context: ./${{ matrix.addon }}
+          platforms: ${{ matrix.platform }}
+          push: false
+          build-args: |
+            BUILD_FROM=${{ matrix.build_from }}
+            BUILD_ARCH=${{ matrix.arch }}
+            BUILD_VERSION=ci-test
