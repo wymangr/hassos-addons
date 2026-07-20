@@ -1,4 +1,7 @@
-ARG BUILD_FROM
+# The Home Assistant builder always passes --build-arg BUILD_FROM, so this
+# default is only a fallback for a bare `docker build` (e.g. local testing) and
+# silences the InvalidDefaultArgInFrom lint warning.
+ARG BUILD_FROM=ghcr.io/hassio-addons/debian-base/aarch64:9.1.0
 FROM $BUILD_FROM
 
 ARG \

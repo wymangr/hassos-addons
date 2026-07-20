@@ -117,13 +117,39 @@ expect_valid() {
 expect_setup_failure() {
 	local name="$1" options_file="$2"
 	echo "::group::scenario ${name} (expect setup failure)"
+	echo "NOTE: this is a NEGATIVE test. The setup script is expected to abort,"
+	echo "      so the FATAL messages below are EXPECTED and indicate success."
+	echo "----- setup output (expected to abort) -----"
 	run_setup "${options_file}"
+	echo "--------------------------------------------"
 
 	if [[ ${setup_rc} -ne 0 ]]; then
-		echo "PASS[${name}]: alloy_setup.sh correctly failed (rc=${setup_rc})"
+		echo "PASS[${name}]: alloy_setup.sh correctly failed as expected (rc=${setup_rc})"
 	else
 		echo "FAIL[${name}]: alloy_setup.sh succeeded but was expected to fail"
 		rc_total=1
+	fi
+	echo "::endgroup::"
+}
+
+# Negative test for the validation step itself: feed `alloy validate` a config
+# that is deliberately invalid and assert it is REJECTED. This proves the
+# validate step actually catches bad config for the pinned Alloy version (i.e.
+# it is not silently passing everything), which is what guards against a bad
+# config-generation change or an Alloy version bump that drops an option.
+expect_invalid_config() {
+	local name="invalid_config"
+	echo "::group::scenario ${name} (expect alloy validate to reject)"
+	echo "NOTE: this is a NEGATIVE test. 'alloy validate' is expected to FAIL"
+	echo "      on the intentionally invalid fixture below."
+	echo "----- alloy validate output (expected to error) -----"
+	if alloy validate "${FIXTURES_DIR}/invalid.alloy"; then
+		echo "-----------------------------------------------------"
+		echo "FAIL[${name}]: alloy validate ACCEPTED an invalid config (validation has no teeth!)"
+		rc_total=1
+	else
+		echo "-----------------------------------------------------"
+		echo "PASS[${name}]: alloy validate correctly rejected the invalid config"
 	fi
 	echo "::endgroup::"
 }
@@ -158,6 +184,7 @@ expect_valid          "loki"             "${SCEN_DIR}/loki.json"           "loki
 expect_valid          "loki_syslog"      "${SCEN_DIR}/loki_syslog.json"    "loki.source.syslog"
 expect_valid          "full"             "${SCEN_DIR}/full.json"           "loki.source.syslog"
 expect_setup_failure  "missing_endpoint" "${SCEN_DIR}/missing_endpoint.json"
+expect_invalid_config
 expect_override
 
 if [[ ${rc_total} -ne 0 ]]; then
