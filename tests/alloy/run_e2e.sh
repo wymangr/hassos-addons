@@ -2,9 +2,20 @@
 # End-to-end test for the Grafana Alloy add-on config generation.
 #
 # Runs INSIDE the built add-on image. For each scenario it:
-#   1. Writes the scenario options to /data/options.json (where bashio reads them)
+#   1. Seeds the scenario options into bashio's cache (see note below)
 #   2. Runs the real /etc/cont-init.d/alloy_setup.sh
 #   3. Runs `alloy validate` on the generated config
+#
+# How the add-on options are injected
+# -----------------------------------
+# This version of bashio does NOT read /data/options.json directly. It fetches
+# options from the Supervisor API via `bashio::app.config`, which first checks a
+# file-backed cache at "${CACHE_DIR}/addons.self.options.config.cache" (key
+# "addons.self.options.config"). With raw=false, the cached value is the plain
+# options object (the API response's ".data"), which is exactly the shape of the
+# scenario JSON files. By pre-writing that cache file we make every
+# `bashio::config` call return the scenario options without any network access
+# to the (absent) Supervisor. CACHE_DIR is read by bashio at startup.
 #
 # `alloy validate` uses the default stability level (generally-available) and no
 # community components, which matches the flags the add-on uses at runtime in
@@ -17,14 +28,21 @@ FIXTURES_DIR="${TESTS_DIR}/fixtures"
 SETUP_SCRIPT="/etc/cont-init.d/alloy_setup.sh"
 GENERATED_CONFIG="/etc/alloy/config.alloy"
 
+# Isolated bashio cache directory (bashio reads CACHE_DIR at startup).
+export CACHE_DIR="/tmp/bashio-cache"
+readonly OPTIONS_CACHE_FILE="${CACHE_DIR}/addons.self.options.config.cache"
+
 rc_total=0
 
 # Run the add-on setup script with a given options file.
 # Populates the global `setup_rc` with its exit code.
 run_setup() {
 	local options_file="$1"
-	mkdir -p /data
-	cp "${options_file}" /data/options.json
+	# Seed bashio's app-config cache with this scenario's options so that
+	# bashio::config reads them without contacting the Supervisor API.
+	rm -rf "${CACHE_DIR}"
+	mkdir -p "${CACHE_DIR}"
+	cp "${options_file}" "${OPTIONS_CACHE_FILE}"
 	rm -f "${GENERATED_CONFIG}"
 	if "${SETUP_SCRIPT}" >/tmp/setup.log 2>&1; then
 		setup_rc=0
@@ -35,8 +53,10 @@ run_setup() {
 }
 
 # Scenario that is expected to generate a valid config.
+# Optional third arg: a substring that must appear in the generated config
+# (used to assert scenario-specific blocks were rendered, e.g. "loki.write").
 expect_valid() {
-	local name="$1" options_file="$2"
+	local name="$1" options_file="$2" required_substr="${3:-}"
 	echo "::group::scenario ${name} (expect valid)"
 	run_setup "${options_file}"
 
@@ -49,6 +69,31 @@ expect_valid() {
 
 	if [[ ! -f "${GENERATED_CONFIG}" ]]; then
 		echo "FAIL[${name}]: expected generated config at ${GENERATED_CONFIG} but none was produced"
+		rc_total=1
+		echo "::endgroup::"
+		return
+	fi
+
+	# `alloy validate` treats an empty/whitespace-only file as valid, which would
+	# mask a broken config-generation run (e.g. options not injected). Require
+	# real content and at least the prometheus.remote_write block, which every
+	# "expect valid" scenario here enables.
+	if [[ -z "$(tr -d '[:space:]' < "${GENERATED_CONFIG}")" ]]; then
+		echo "FAIL[${name}]: generated config is empty (options were not applied)"
+		rc_total=1
+		echo "::endgroup::"
+		return
+	fi
+
+	if ! grep -q "prometheus.remote_write" "${GENERATED_CONFIG}"; then
+		echo "FAIL[${name}]: generated config is missing the prometheus.remote_write block"
+		rc_total=1
+		echo "::endgroup::"
+		return
+	fi
+
+	if [[ -n "${required_substr}" ]] && ! grep -qF "${required_substr}" "${GENERATED_CONFIG}"; then
+		echo "FAIL[${name}]: generated config is missing expected content: ${required_substr}"
 		rc_total=1
 		echo "::endgroup::"
 		return
@@ -108,10 +153,10 @@ expect_override() {
 }
 
 expect_valid          "default"          "${SCEN_DIR}/default.json"
-expect_valid          "prometheus_labels" "${SCEN_DIR}/prom_labels.json"
-expect_valid          "loki"             "${SCEN_DIR}/loki.json"
-expect_valid          "loki_syslog"      "${SCEN_DIR}/loki_syslog.json"
-expect_valid          "full"             "${SCEN_DIR}/full.json"
+expect_valid          "prometheus_labels" "${SCEN_DIR}/prom_labels.json"  "ha-instance-01"
+expect_valid          "loki"             "${SCEN_DIR}/loki.json"           "loki.write"
+expect_valid          "loki_syslog"      "${SCEN_DIR}/loki_syslog.json"    "loki.source.syslog"
+expect_valid          "full"             "${SCEN_DIR}/full.json"           "loki.source.syslog"
 expect_setup_failure  "missing_endpoint" "${SCEN_DIR}/missing_endpoint.json"
 expect_override
 
