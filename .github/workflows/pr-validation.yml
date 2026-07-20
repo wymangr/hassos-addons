@@ -1,0 +1,100 @@
+name: PR Validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  alloy-config-e2e:
+    name: Alloy config E2E (generate + validate)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build grafana_alloy image (amd64)
+        run: |
+          docker build \
+            --build-arg BUILD_FROM=ghcr.io/hassio-addons/debian-base/amd64:9.1.0 \
+            --build-arg BUILD_ARCH=amd64 \
+            --build-arg BUILD_VERSION=e2e \
+            -t grafana-alloy-e2e:local \
+            ./grafana_alloy
+
+      - name: Generate configs and run alloy validate
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/tests/alloy:/tests:ro" \
+            --entrypoint bash \
+            grafana-alloy-e2e:local \
+            /tests/run_e2e.sh
+
+  dht-exporter-e2e:
+    name: DHT exporter E2E (run + scrape /metrics)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install runtime dependencies for the mock app
+        # app_test.py is hardware-free, so it only needs the web/metrics stack.
+        run: |
+          pip install \
+            "fastapi==0.115.12" \
+            "uvicorn==0.23.2" \
+            "prometheus_client==0.21.1" \
+            "tenacity==9.0.0"
+
+      - name: Run E2E test
+        run: bash tests/dht_exporter/run_e2e.sh
+
+  build:
+    name: Build ${{ matrix.addon }} (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Cross-arch build safety net for targets not exercised by the runtime
+          # E2E jobs above (dht_exporter is aarch64-only; alloy amd64 is covered
+          # by alloy-config-e2e).
+          - addon: dht_exporter
+            arch: aarch64
+            platform: linux/arm64
+            build_from: ghcr.io/hassio-addons/debian-base/aarch64:9.1.0
+          - addon: grafana_alloy
+            arch: aarch64
+            platform: linux/arm64
+            build_from: ghcr.io/hassio-addons/debian-base/aarch64:9.1.0
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build add-on image (test only, no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.addon }}
+          platforms: ${{ matrix.platform }}
+          push: false
+          build-args: |
+            BUILD_FROM=${{ matrix.build_from }}
+            BUILD_ARCH=${{ matrix.arch }}
+            BUILD_VERSION=ci-test

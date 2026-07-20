@@ -1,0 +1,18 @@
+// Intentionally INVALID Alloy config used as a negative test.
+//
+// This proves the `alloy validate` step in the E2E suite actually has teeth for
+// the pinned Alloy version: it must REJECT this file. It references a component
+// that does not exist and a property that is not valid, which are exactly the
+// kinds of breakage a bad config-generation change or an Alloy version bump
+// would introduce.
+prometheus.remote_write "default" {
+	endpoint {
+		url = "http://prometheus:9090/api/v1/write"
+
+		this_property_does_not_exist = "boom"
+	}
+}
+
+component.that.does.not.exist "nope" {
+	forward_to = [prometheus.remote_write.default.receiver]
+}
