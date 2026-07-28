@@ -203,6 +203,14 @@ expect_valid          "loki_only"         "${SCEN_DIR}/loki_only.json"        "l
 expect_valid          "no_servername"     "${SCEN_DIR}/no_servername.json"    "prometheus.remote_write loki.source.journal" "servername external_labels"
 # Exporters disabled: unix/process scrape blocks must be omitted, self stays.
 expect_valid          "no_exporters"      "${SCEN_DIR}/no_exporters.json"     "prometheus.remote_write prometheus.exporter.self" "prometheus.exporter.unix prometheus.exporter.process"
+# Basic auth on both endpoints: both must emit a basic_auth block with the creds.
+expect_valid          "basic_auth"        "${SCEN_DIR}/basic_auth.json"       "basic_auth promuser1234 lokiuser4321 loki.write"
+# Basic auth with username but no password: auth must NOT be emitted (both the
+# username and password are required), so no basic_auth block should appear.
+expect_valid          "basic_auth_username_only" "${SCEN_DIR}/basic_auth_username_only.json" "prometheus.remote_write" "basic_auth"
+# Basic auth password containing " and \: river_escape must produce config that
+# alloy validate still accepts (guards the escaping against breakage).
+expect_valid          "basic_auth_special_chars" "${SCEN_DIR}/basic_auth_special_chars.json" "basic_auth"
 expect_setup_failure  "missing_endpoint"  "${SCEN_DIR}/missing_endpoint.json"
 expect_setup_failure  "override_empty_path" "${SCEN_DIR}/override_empty_path.json"
 expect_invalid_config
