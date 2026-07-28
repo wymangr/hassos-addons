@@ -1,7 +1,7 @@
 ---
 name: "Grafana Alloy"
 description: "Grafana Alloy"
-version: "0.0.8"
+version: "0.0.9"
 slug: "grafana_alloy"
 arch:
   - aarch64
@@ -24,18 +24,27 @@ map:
 options:
   enable_prometheus: true
   prometheus_write_endpoint: http://prometheus:9090/api/v1/write
+  prometheus_basic_auth:
+    username: ""
+    password: ""
   enable_unix_component: true
   enable_process_component: true
   prometheus_scrape_interval: 15s
   servername_tag: "HomeAssistant"
   enable_loki: false
   loki_endpoint: http://loki:3100/api/v1/push
+  loki_basic_auth:
+    username: ""
+    password: ""
   enable_loki_syslog: false
   override_config: false
   override_config_path: "/config/alloy/example.alloy"
 schema:
   enable_prometheus: bool
   prometheus_write_endpoint: str?
+  prometheus_basic_auth:
+    username: str?
+    password: password?
   enable_unix_component: bool
   enable_process_component: bool
   prometheus_scrape_interval: list(15s|30s|60s)
@@ -43,6 +52,9 @@ schema:
   instance_tag: str?
   enable_loki: bool
   loki_endpoint: str?
+  loki_basic_auth:
+    username: str?
+    password: password?
   enable_loki_syslog: bool
   override_config: bool
   override_config_path: str?

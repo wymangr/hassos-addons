@@ -4,6 +4,13 @@ readonly CONFIG_DIR=/etc/alloy
 readonly CONFIG_FILE="${CONFIG_DIR}/config.alloy"
 readonly CONFIG_TEMPLATE="${CONFIG_DIR}/config.alloy.template"
 
+river_escape() {
+    local value="$1"
+    value="${value//\\/\\\\}"   # escape backslashes first
+    value="${value//\"/\\\"}"   # then escape double quotes
+    printf '%s' "$value"
+}
+
 
 if bashio::config.true 'override_config'; then
     if bashio::config.is_empty 'override_config_path'; then
@@ -21,6 +28,17 @@ else
         if bashio::config.has_value 'prometheus_write_endpoint'; then
             PROMETHEUS_ENDPOINT="$(bashio::config "prometheus_write_endpoint")"
         fi
+
+        if bashio::config.has_value 'prometheus_basic_auth.username' && bashio::config.has_value 'prometheus_basic_auth.password'; then
+            prometheus_auth="
+                basic_auth {
+                    username = \"$(river_escape "$(bashio::config "prometheus_basic_auth.username")")\"
+                    password = \"$(river_escape "$(bashio::config "prometheus_basic_auth.password")")\"
+                }
+            "
+        else
+            prometheus_auth=""
+        fi 
 
         # Servername External Label
         if bashio::config.has_value 'servername_tag'; then
@@ -44,6 +62,7 @@ else
         prometheus.remote_write \"default\" {
             endpoint {
                 url = \"$PROMETHEUS_ENDPOINT\"
+                $prometheus_auth
 
                 metadata_config {
                     send_interval = \"$(bashio::config "prometheus_scrape_interval")\"
@@ -118,6 +137,17 @@ else
             syslog_config=""
         fi
 
+        if bashio::config.has_value 'loki_basic_auth.username' && bashio::config.has_value 'loki_basic_auth.password'; then
+            loki_auth="
+                basic_auth {
+                    username = \"$(river_escape "$(bashio::config "loki_basic_auth.username")")\"
+                    password = \"$(river_escape "$(bashio::config "loki_basic_auth.password")")\"
+                }
+            "
+        else
+            loki_auth=""
+        fi 
+
         export LOKI_CONFIG="
         loki.relabel \"journal\" {
             forward_to = []
@@ -153,6 +183,7 @@ else
         loki.write \"endpoint\" {
             endpoint {
                 url = \"$(bashio::config "loki_endpoint")\"
+                $loki_auth
             }
         }"
     fi

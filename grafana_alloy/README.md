@@ -49,6 +49,8 @@ No limitations that I found.
 | ---------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------- |
 | `enable_prometheus`          | Enable sending metrics to Prometheus. If enabled, prometheus_write_endpoint is required. | true                                | No                          |
 | `prometheus_write_endpoint`  | Full URL to send metrics to.                                                             | http://prometheus:9090/api/v1/write | If `enable_prometheus`=true |
+| `prometheus_basic_auth.username` | Basic auth username for the Prometheus endpoint (e.g. Grafana Cloud instance ID). Basic auth is only sent when both username and password are set. |                 | No                          |
+| `prometheus_basic_auth.password` | Basic auth password for the Prometheus endpoint (e.g. Grafana Cloud API token).   |                                     | No                          |
 | `enable_unix_component`      | Enables prometheus.exporter.unix component to collect node_exporter metrics.             | true                                | No                          |
 | `enable_process_component`   | Enables prometheus.exporter.process component to collect process_exporter metrics.       | true                                | No                          |
 | `prometheus_scrape_interval` | How frequently to scrape the targets of this scrape configuration.                       |                                     | No                          |
@@ -56,6 +58,8 @@ No limitations that I found.
 | `instance_tag`               | Overwrite the default metric "instance" tag.                                             |                                     | No                          |
 | `enable_loki`                | Enable sending logs to Loki. If enabled, loki_endpoint is required.                      | false                               | No                          |
 | `loki_endpoint`              | Full Loki URL to send logs to.                                                           | http://loki:3100/api/v1/push        | No                          |
+| `loki_basic_auth.username`   | Basic auth username for the Loki endpoint (e.g. Grafana Cloud instance ID). Basic auth is only sent when both username and password are set. |                   | No                          |
+| `loki_basic_auth.password`   | Basic auth password for the Loki endpoint (e.g. Grafana Cloud API token).                |                                     | No                          |
 | `enable_loki_syslog`         | Listen for syslog messages over UDP or TCP connections and forwards them to loki.        | false                               | No                          |
 | `override_config`            | If enabled, all other options will be ignored and you can supply your own Alloy config.  | false                               | No                          |
 | `override_config_path`       | Path to Override Alloy config file. HA config directory is counted to /config.           | /config/alloy/example.alloy         | If `override_config`=true   |
