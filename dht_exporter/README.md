@@ -67,7 +67,7 @@ prometheus.scrape "dht_exporter" {
 
 ## Todo
 
-- [ ] Add Github workflows
-- [ ] Build and publish a docker image so users don't have to build the image on every install
+- [x] Add Github workflows
+- [x] Build and publish a docker image so users don't have to build the image on every install
 - [ ] Add Tests
 - [ ] Rewrite in Go (prometheus-client doesn't work well with multiprocessing and Python)

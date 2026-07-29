@@ -1,8 +1,9 @@
 ---
 name: "DHT Exporter"
 description: "Prometheus Exporter for DHT Sensor Temperature & Humidity Sensor"
-version: "0.0.3"
+version: "0.0.4"
 slug: "dht_exporter"
+image: "ghcr.io/wymangr/dht_exporter-{arch}"
 init: false
 arch:
   - aarch64
