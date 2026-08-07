@@ -93,10 +93,6 @@ jobs:
           context: ./${{ matrix.addon }}
           platforms: ${{ matrix.platform }}
           push: true
-          # Single-arch images per HA add-on convention; provenance/SBOM
-          # manifests can confuse the Supervisor's pull, so disable them.
-          provenance: false
-          sbom: false
           tags: |
             ${{ matrix.image }}:${{ matrix.version }}
             ${{ matrix.image }}:latest
