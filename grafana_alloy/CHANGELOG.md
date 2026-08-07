@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.0.10] - 2026-08-06
+## [0.0.10] - 2026-08-07
 
 - Publish pre-built images to GHCR so the add-on is pulled instead of built on the device
 - Bump Grafana Alloy version to [1.18.1](https://github.com/grafana/alloy/releases/tag/v1.18.1)

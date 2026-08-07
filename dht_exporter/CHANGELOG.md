@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.0.4] - 2026-08-06
+## [0.0.4] - 2026-08-07
 
 - Publish pre-built images to GHCR so the add-on is pulled instead of built on the device
 - Bump base image from `9.1.0` to `9.3.0`
