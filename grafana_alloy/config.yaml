@@ -1,8 +1,9 @@
 ---
 name: "Grafana Alloy"
 description: "Grafana Alloy"
-version: "0.0.9"
+version: "0.0.10"
 slug: "grafana_alloy"
+image: "ghcr.io/wymangr/grafana_alloy-{arch}"
 arch:
   - aarch64
   - amd64

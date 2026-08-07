@@ -17,12 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build grafana_alloy image (amd64)
         run: |
           docker build \
-            --build-arg BUILD_FROM=ghcr.io/hassio-addons/debian-base/amd64:9.1.0 \
+            --build-arg BUILD_FROM=ghcr.io/hassio-addons/debian-base/amd64:9.3.0 \
             --build-arg BUILD_ARCH=amd64 \
             --build-arg BUILD_VERSION=e2e \
             -t grafana-alloy-e2e:local \
@@ -41,10 +41,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -73,14 +73,14 @@ jobs:
           - addon: dht_exporter
             arch: aarch64
             platform: linux/arm64
-            build_from: ghcr.io/hassio-addons/debian-base/aarch64:9.1.0
+            build_from: ghcr.io/hassio-addons/debian-base/aarch64:9.3.0
           - addon: grafana_alloy
             arch: aarch64
             platform: linux/arm64
-            build_from: ghcr.io/hassio-addons/debian-base/aarch64:9.1.0
+            build_from: ghcr.io/hassio-addons/debian-base/aarch64:9.3.0
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

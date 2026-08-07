@@ -73,8 +73,8 @@ If `override_config` is true and a valid Alloy config file is supplied in `overr
 ## Todo
 
 - [x] Add more customization options (Enable/disable components, scrape_interval, etc..)
-- [ ] Add Github workflows
-- [ ] Build and publish a docker image so users don't have to build the image on every install
+- [x] Add Github workflows
+- [x] Build and publish a docker image so users don't have to build the image on every install
 - [x] Verify all permissions added to `config.yaml` are required and remove unneeded ones
 
 ## Example Data

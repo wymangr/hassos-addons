@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.10] - 2026-08-07
+
+- Publish pre-built images to GHCR so the add-on is pulled instead of built on the device
+- Bump Grafana Alloy version to [1.18.1](https://github.com/grafana/alloy/releases/tag/v1.18.1)
+- Bump base image from `9.1.0` to `9.3.0`
+
 ## [0.0.9] - 2026-07-17
 
 - Added basic auth remote write options to enable Grafana Cloud for Loki and Prometheus

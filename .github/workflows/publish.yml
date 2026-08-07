@@ -6,13 +6,15 @@ name: Publish add-on images
 # add-on in the repo.
 #
 # NOTE: the version check in detect_publish.py is the real gate on whether an
-# image is built. This trigger intentionally runs on every push to main so the
-# detect job always evaluates the version diff; it no-ops (builds nothing) when
-# no add-on version changed.
+# image is built. The paths filter limits runs to commits that touch a
+# config.yaml (where the version lives); the detect job then no-ops (builds
+# nothing) unless an add-on's version actually changed.
 on:
   push:
     branches:
       - main
+    paths:
+      - "*/config.yaml"
   workflow_dispatch:
     inputs:
       addon:
@@ -37,13 +39,13 @@ jobs:
       has_changes: ${{ steps.detect.outputs.has_changes }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Full history so the previous commit's config.yaml can be read.
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -70,7 +72,7 @@ jobs:
       matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
