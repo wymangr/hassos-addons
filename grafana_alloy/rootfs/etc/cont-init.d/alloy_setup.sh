@@ -3,6 +3,10 @@
 readonly CONFIG_DIR=/etc/alloy
 readonly CONFIG_FILE="${CONFIG_DIR}/config.alloy"
 readonly CONFIG_TEMPLATE="${CONFIG_DIR}/config.alloy.template"
+readonly ENV_FILE="${CONFIG_DIR}/alloy.env"
+
+# Names that would break the service script or the shell that starts Alloy.
+readonly RESERVED_ENV_NAMES="PATH HOME IFS PWD SHELL USER LD_PRELOAD LD_LIBRARY_PATH CONFIG_FILE CONFIG_DIR OVERRIDE_CONFIG"
 
 river_escape() {
     local value="$1"
@@ -11,6 +15,38 @@ river_escape() {
     printf '%s' "$value"
 }
 
+# Wrap a value in single quotes so it is safe to source from a shell script.
+shell_escape() {
+    local value="$1"
+    value="${value//\'/\'\\\'\'}"
+    printf "'%s'" "$value"
+}
+
+# User supplied environment variables are written to a file that the service
+# sources before starting Alloy, making them available to sys.env() in both the
+# generated config and an override config.
+: > "$ENV_FILE"
+if bashio::config.has_value 'environment_variables'; then
+    for entry in $(bashio::config 'environment_variables|keys'); do
+        env_name="$(bashio::config "environment_variables[${entry}].name")"
+        env_value=""
+        if bashio::config.has_value "environment_variables[${entry}].value"; then
+            env_value="$(bashio::config "environment_variables[${entry}].value")"
+        fi
+
+        if [[ ! "$env_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            bashio::exit.nok "Invalid environment variable name: '${env_name}'"
+        fi
+
+        if [[ " ${RESERVED_ENV_NAMES} " == *" ${env_name} "* ]] \
+            || [[ "$env_name" == S6_* ]] || [[ "$env_name" == BASHIO_* ]]; then
+            bashio::exit.nok "Reserved environment variable name: '${env_name}'"
+        fi
+
+        echo "export ${env_name}=$(shell_escape "$env_value")" >> "$ENV_FILE"
+        bashio::log.info "Setting environment variable ${env_name}"
+    done
+fi
 
 if bashio::config.true 'override_config'; then
     if bashio::config.is_empty 'override_config_path'; then

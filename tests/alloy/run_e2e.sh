@@ -27,6 +27,7 @@ SCEN_DIR="${TESTS_DIR}/scenarios"
 FIXTURES_DIR="${TESTS_DIR}/fixtures"
 SETUP_SCRIPT="/etc/cont-init.d/alloy_setup.sh"
 GENERATED_CONFIG="/etc/alloy/config.alloy"
+ENV_FILE="/etc/alloy/alloy.env"
 
 # Isolated bashio cache directory (bashio reads CACHE_DIR at startup).
 export CACHE_DIR="/tmp/bashio-cache"
@@ -191,6 +192,57 @@ expect_override() {
 	echo "::endgroup::"
 }
 
+# User supplied environment variables: the setup script writes an env file that
+# the service sources before starting Alloy. Assert the values survive shell
+# escaping (quotes, spaces, would-be command substitution) and that a config
+# using sys.env() validates once they are applied.
+expect_env_vars() {
+	local name="env_vars"
+	echo "::group::scenario ${name} (environment_variables)"
+	run_setup "${SCEN_DIR}/env_vars.json"
+
+	if [[ ${setup_rc} -ne 0 ]]; then
+		echo "FAIL[${name}]: alloy_setup.sh exited ${setup_rc} but was expected to succeed"
+		echo "----- setup output -----"
+		cat /tmp/setup.log
+		echo "------------------------"
+		rc_total=1
+		echo "::endgroup::"
+		return
+	fi
+
+	# A variable without a value must be exported as an empty string, not "null".
+	local expected="prod|alloy-agent|p@ss w'ord\"\$(id)|"
+	local actual
+	actual="$(. "${ENV_FILE}" && printf '%s|%s|%s|%s' "${ALLOY_ENV}" "${ALLOY_USER}" "${ALLOY_TOKEN}" "${ALLOY_EMPTY?unset}")"
+	if [[ "${actual}" != "${expected}" ]]; then
+		echo "FAIL[${name}]: sourced environment variables do not match"
+		echo "  expected: ${expected}"
+		echo "  actual  : ${actual}"
+		rc_total=1
+		echo "::endgroup::"
+		return
+	fi
+
+	if (. "${ENV_FILE}" && alloy validate "${FIXTURES_DIR}/env.alloy"); then
+		echo "PASS[${name}]: sys.env() config validates with the injected variables"
+	else
+		echo "FAIL[${name}]: sys.env() config failed validation with the injected variables"
+		rc_total=1
+	fi
+
+	# Removing the option again must clear the previously written variables.
+	run_setup "${SCEN_DIR}/default.json"
+	if [[ -s "${ENV_FILE}" ]]; then
+		echo "FAIL[${name}]: env file still has content when no environment_variables are configured"
+		cat "${ENV_FILE}"
+		rc_total=1
+	else
+		echo "PASS[${name}]: env file is reset when no environment_variables are configured"
+	fi
+	echo "::endgroup::"
+}
+
 expect_valid          "default"           "${SCEN_DIR}/default.json"          "prometheus.remote_write"
 expect_valid          "prometheus_labels" "${SCEN_DIR}/prom_labels.json"      "prometheus.remote_write ha-instance-01"
 expect_valid          "loki"              "${SCEN_DIR}/loki.json"             "prometheus.remote_write loki.write"
@@ -198,6 +250,9 @@ expect_valid          "loki_syslog"       "${SCEN_DIR}/loki_syslog.json"      "p
 expect_valid          "full"              "${SCEN_DIR}/full.json"             "prometheus.remote_write loki.source.syslog"
 # Loki only (Prometheus disabled): must have Loki, must NOT have remote_write.
 expect_valid          "loki_only"         "${SCEN_DIR}/loki_only.json"        "loki.write" "prometheus.remote_write"
+# Environment variables must never be substituted into the generated config, so
+# the value of the PROMETHEUS_CONFIG variable must not leak into it.
+expect_valid          "env_vars_generated" "${SCEN_DIR}/env_vars_generated.json" "prometheus.remote_write" "should-not-leak"
 # No servername_tag: exercises the else-branches (no external_labels block, and
 # Loki journal labels without a servername), so "servername" must not appear.
 expect_valid          "no_servername"     "${SCEN_DIR}/no_servername.json"    "prometheus.remote_write loki.source.journal" "servername external_labels"
@@ -213,8 +268,15 @@ expect_valid          "basic_auth_username_only" "${SCEN_DIR}/basic_auth_usernam
 expect_valid          "basic_auth_special_chars" "${SCEN_DIR}/basic_auth_special_chars.json" "basic_auth"
 expect_setup_failure  "missing_endpoint"  "${SCEN_DIR}/missing_endpoint.json"
 expect_setup_failure  "override_empty_path" "${SCEN_DIR}/override_empty_path.json"
+# An environment variable name that is not a valid shell identifier must be
+# rejected instead of being written into the sourced env file.
+expect_setup_failure  "env_vars_invalid_name" "${SCEN_DIR}/env_vars_invalid_name.json"
+# Names used by the service script (or the shell that starts Alloy) must be
+# rejected so the env file cannot redirect Alloy to another config.
+expect_setup_failure  "env_vars_reserved_name" "${SCEN_DIR}/env_vars_reserved_name.json"
 expect_invalid_config
 expect_override
+expect_env_vars
 
 if [[ ${rc_total} -ne 0 ]]; then
 	echo "ALLOY E2E: FAILED"

@@ -1,0 +1,13 @@
+{
+  "enable_prometheus": false,
+  "prometheus_write_endpoint": "http://prometheus:9090/api/v1/write",
+  "enable_unix_component": false,
+  "enable_process_component": false,
+  "prometheus_scrape_interval": "15s",
+  "enable_loki": false,
+  "loki_endpoint": "http://loki:3100/api/v1/push",
+  "enable_loki_syslog": false,
+  "override_config": true,
+  "override_config_path": "/tests/fixtures/env.alloy",
+  "environment_variables": [{ "name": "CONFIG_FILE", "value": "/tmp/hijacked.alloy" }]
+}
