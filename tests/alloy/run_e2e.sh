@@ -271,6 +271,9 @@ expect_setup_failure  "override_empty_path" "${SCEN_DIR}/override_empty_path.jso
 # An environment variable name that is not a valid shell identifier must be
 # rejected instead of being written into the sourced env file.
 expect_setup_failure  "env_vars_invalid_name" "${SCEN_DIR}/env_vars_invalid_name.json"
+# Names used by the service script (or the shell that starts Alloy) must be
+# rejected so the env file cannot redirect Alloy to another config.
+expect_setup_failure  "env_vars_reserved_name" "${SCEN_DIR}/env_vars_reserved_name.json"
 expect_invalid_config
 expect_override
 expect_env_vars

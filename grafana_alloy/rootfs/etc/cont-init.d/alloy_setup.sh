@@ -5,6 +5,9 @@ readonly CONFIG_FILE="${CONFIG_DIR}/config.alloy"
 readonly CONFIG_TEMPLATE="${CONFIG_DIR}/config.alloy.template"
 readonly ENV_FILE="${CONFIG_DIR}/alloy.env"
 
+# Names that would break the service script or the shell that starts Alloy.
+readonly RESERVED_ENV_NAMES="PATH HOME IFS PWD SHELL USER LD_PRELOAD LD_LIBRARY_PATH CONFIG_FILE CONFIG_DIR OVERRIDE_CONFIG"
+
 river_escape() {
     local value="$1"
     value="${value//\\/\\\\}"   # escape backslashes first
@@ -33,6 +36,11 @@ if bashio::config.has_value 'environment_variables'; then
 
         if [[ ! "$env_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
             bashio::exit.nok "Invalid environment variable name: '${env_name}'"
+        fi
+
+        if [[ " ${RESERVED_ENV_NAMES} " == *" ${env_name} "* ]] \
+            || [[ "$env_name" == S6_* ]] || [[ "$env_name" == BASHIO_* ]]; then
+            bashio::exit.nok "Reserved environment variable name: '${env_name}'"
         fi
 
         echo "export ${env_name}=$(shell_escape "$env_value")" >> "$ENV_FILE"

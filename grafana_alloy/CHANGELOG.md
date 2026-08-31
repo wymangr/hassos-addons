@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.0.11] - 2026-08-30
+## [0.0.11] - 2026-08-31
 
 - Added `environment_variables` option to set environment variables for the Alloy process, usable in the config with `sys.env()` [#18](https://github.com/wymangr/hassos-addons/issues/18)
 - Bump Grafana Alloy version to [1.19.2](https://github.com/grafana/alloy/releases/tag/v1.19.2)
