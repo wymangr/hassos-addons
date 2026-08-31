@@ -63,8 +63,13 @@ No limitations that I found.
 | `enable_loki_syslog`         | Listen for syslog messages over UDP or TCP connections and forwards them to loki.        | false                               | No                          |
 | `override_config`            | If enabled, all other options will be ignored and you can supply your own Alloy config.  | false                               | No                          |
 | `override_config_path`       | Path to Override Alloy config file. HA config directory is counted to /config.           | /config/alloy/example.alloy         | If `override_config`=true   |
+| `environment_variables`      | List of `name`/`value` pairs set as environment variables for the Alloy process.         | []                                  | No                          |
 
 If `override_config` is true and a valid Alloy config file is supplied in `override_config_path`, all other options will be ignored.
+
+### Environment Variables
+
+Environment variables set with `environment_variables` are available in your Alloy config through [`sys.env`](https://grafana.com/docs/alloy/latest/reference/stdlib/sys/), which is useful for keeping secrets out of the config file or for building values dynamically. `name` must be a valid environment variable name (letters, digits and underscores, not starting with a digit).
 
 ## Support
 

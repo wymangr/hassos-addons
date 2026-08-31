@@ -1,7 +1,7 @@
 ---
 name: "Grafana Alloy"
 description: "Grafana Alloy"
-version: "0.0.10"
+version: "0.0.11"
 slug: "grafana_alloy"
 image: "ghcr.io/wymangr/grafana_alloy-{arch}"
 arch:
@@ -40,6 +40,7 @@ options:
   enable_loki_syslog: false
   override_config: false
   override_config_path: "/config/alloy/example.alloy"
+  environment_variables: []
 schema:
   enable_prometheus: bool
   prometheus_write_endpoint: str?
@@ -59,3 +60,6 @@ schema:
   enable_loki_syslog: bool
   override_config: bool
   override_config_path: str?
+  environment_variables:
+    - name: match(^[A-Za-z_][A-Za-z0-9_]*$)
+      value: str?

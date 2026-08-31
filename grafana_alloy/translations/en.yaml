@@ -42,3 +42,6 @@ configuration:
   enable_loki_syslog:
     name: Enable Loki Syslog
     description: Listen for syslog messages over UDP or TCP connections and forwards them to loki
+  environment_variables:
+    name: Environment Variables
+    description: Environment variables to set for the Alloy process, available in the config with sys.env("NAME")
