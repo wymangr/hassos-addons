@@ -1,5 +1,8 @@
 ---
 configuration:
+  server_http_listen_addr:
+    name: HTTP Listen Address
+    description: "Address and port for Alloy's HTTP server. Defaults to 0.0.0.0:12345 (all interfaces). Set 127.0.0.1:12345 for host-local access only. Applies even when Override Config is enabled; Network port mappings have no effect with host networking."
   enable_prometheus:
     name: Enable Prometheus Metrics
     description: Enable sending metrics to Prometheus. If enabled, prometheus_write_endpoint is required
@@ -35,7 +38,7 @@ configuration:
     description: Basic auth credentials for the Loki endpoint (e.g. Grafana Cloud). Leave blank to send logs without authentication. Basic auth is only sent when both the username and password are set
   override_config:
     name: Override Config
-    description: If enabled, all other options will be ignored and you can supply your own Alloy config
+    description: If enabled, supply your own Alloy config instead of generating one. HTTP Listen Address and Environment Variables still apply
   override_config_path:
     name: Override Config Path
     description: Path to Override Alloy config file

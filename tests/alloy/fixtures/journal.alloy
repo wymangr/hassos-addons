@@ -1,0 +1,11 @@
+// Journal-only override used to test the real service HTTP listener.
+loki.source.journal "read" {
+	path       = "/var/log/journal"
+	forward_to = [loki.write.endpoint.receiver]
+}
+
+loki.write "endpoint" {
+	endpoint {
+		url = "http://127.0.0.1:3100/loki/api/v1/push"
+	}
+}

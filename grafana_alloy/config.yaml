@@ -1,7 +1,7 @@
 ---
 name: "Grafana Alloy"
 description: "Grafana Alloy"
-version: "0.0.11"
+version: "0.0.12"
 slug: "grafana_alloy"
 image: "ghcr.io/wymangr/grafana_alloy-{arch}"
 arch:
@@ -23,6 +23,7 @@ map:
     path: /config
 
 options:
+  server_http_listen_addr: "0.0.0.0:12345"
   enable_prometheus: true
   prometheus_write_endpoint: http://prometheus:9090/api/v1/write
   prometheus_basic_auth:
@@ -42,6 +43,7 @@ options:
   override_config_path: "/config/alloy/example.alloy"
   environment_variables: []
 schema:
+  server_http_listen_addr: str?
   enable_prometheus: bool
   prometheus_write_endpoint: str?
   prometheus_basic_auth:

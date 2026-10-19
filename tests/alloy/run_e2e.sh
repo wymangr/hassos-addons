@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# End-to-end test for the Grafana Alloy add-on config generation.
+# End-to-end test for the Grafana Alloy add-on config generation and service.
 #
 # Runs INSIDE the built add-on image. For each scenario it:
 #   1. Seeds the scenario options into bashio's cache (see note below)
 #   2. Runs the real /etc/cont-init.d/alloy_setup.sh
 #   3. Runs `alloy validate` on the generated config
+# Listener scenarios also start the real service and check HTTP reachability.
 #
 # How the add-on options are injected
 # -----------------------------------
@@ -26,6 +27,7 @@ TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCEN_DIR="${TESTS_DIR}/scenarios"
 FIXTURES_DIR="${TESTS_DIR}/fixtures"
 SETUP_SCRIPT="/etc/cont-init.d/alloy_setup.sh"
+SERVICE_SCRIPT="/etc/services.d/alloy/run"
 GENERATED_CONFIG="/etc/alloy/config.alloy"
 ENV_FILE="/etc/alloy/alloy.env"
 
@@ -34,6 +36,17 @@ export CACHE_DIR="/tmp/bashio-cache"
 readonly OPTIONS_CACHE_FILE="${CACHE_DIR}/addons.self.options.config.cache"
 
 rc_total=0
+alloy_pid=""
+
+stop_alloy() {
+	if [[ -n "${alloy_pid}" ]]; then
+		kill -TERM "${alloy_pid}" 2>/dev/null || true
+		wait "${alloy_pid}" 2>/dev/null || true
+		alloy_pid=""
+	fi
+}
+trap stop_alloy EXIT
+trap 'exit 1' INT TERM
 
 # Run the add-on setup script with a given options file.
 # Populates the global `setup_rc` with its exit code. Output is captured to
@@ -243,6 +256,114 @@ expect_env_vars() {
 	echo "::endgroup::"
 }
 
+# Exercise the CLI flag, not just config generation. A loopback listener must
+# answer locally but refuse the container's non-loopback IP (the LAN equivalent).
+expect_http_listener() {
+	local name="$1" scenario="$2" patch="$3" address="$4" remote_access="$5"
+	local options_file="/tmp/http-options.json" failed=0 ip actual_access
+	local url="http://${address/0.0.0.0/127.0.0.1}/-/ready"
+	echo "::group::scenario ${name} (HTTP listener)"
+	if ! jq --arg journal_config "${FIXTURES_DIR}/journal.alloy" \
+		"${patch}" "${scenario}" > "${options_file}"; then
+		echo "FAIL[${name}]: could not prepare listener options"
+		rc_total=1
+		echo "::endgroup::"
+		return
+	fi
+	run_setup "${options_file}"
+	if [[ ${setup_rc} -ne 0 ]]; then
+		echo "FAIL[${name}]: setup failed"
+		cat /tmp/setup.log
+		rc_total=1
+		echo "::endgroup::"
+		return
+	fi
+
+	"${SERVICE_SCRIPT}" >/tmp/http-service.log 2>&1 &
+	alloy_pid=$!
+	if ! curl --noproxy '*' -g -fsS --connect-timeout 1 --max-time 2 \
+		--retry 20 --retry-connrefused --retry-delay 1 --retry-max-time 25 \
+		"${url}" >/dev/null 2>/tmp/http-curl.log; then
+		echo "FAIL[${name}]: expected listener did not become ready"
+		cat /tmp/http-curl.log
+		failed=1
+	elif ! tr '\0' '\n' < "/proc/${alloy_pid}/cmdline" \
+		| grep -Fx -- "--server.http.listen-addr=${address}" >/dev/null; then
+		echo "FAIL[${name}]: service did not pass the expected listener argument"
+		failed=1
+	else
+		ip="$(hostname -i | awk '{print $1}')"
+		if [[ -z "${ip}" || "${ip}" == 127.* || "${ip}" == *:* ]]; then
+			echo "FAIL[${name}]: could not determine a non-loopback IPv4 address"
+			failed=1
+		else
+			actual_access=no
+			if curl --noproxy '*' -fsS --connect-timeout 1 --max-time 2 \
+				"http://${ip}:${address##*:}/-/ready" >/dev/null 2>&1; then
+				actual_access=yes
+			fi
+			if [[ "${actual_access}" != "${remote_access}" ]]; then
+				echo "FAIL[${name}]: non-loopback access was ${actual_access}, expected ${remote_access}"
+				failed=1
+			fi
+		fi
+	fi
+	if [[ "${name}" == http_loopback_override ]]; then
+		if ! tr '\0' '\n' < "/proc/${alloy_pid}/environ" | grep -qxF 'HTTP_LISTEN_ADDR=keep-user-address' \
+			|| ! tr '\0' '\n' < "/proc/${alloy_pid}/environ" | grep -qxF 'HTTP_LISTEN_PORT=keep-user-port'; then
+			echo "FAIL[${name}]: listener settings overwrote user environment variables"
+			failed=1
+		fi
+	fi
+	stop_alloy
+	if [[ ${failed} -ne 0 ]]; then
+		cat /tmp/http-service.log
+		rc_total=1
+	else
+		echo "PASS[${name}]: ${address}, non-loopback access=${remote_access}"
+	fi
+	echo "::endgroup::"
+}
+
+# These errors must come from our startup validation, not an unrelated config
+# failure or a timeout after Alloy accidentally opened a listener.
+expect_invalid_http_listeners() {
+	local address service_rc
+	echo "::group::scenario invalid_http_listeners"
+	run_setup "${SCEN_DIR}/override.json"
+	if [[ ${setup_rc} -ne 0 ]]; then
+		echo "FAIL[invalid_http_listeners]: setup failed"
+		cat /tmp/setup.log
+		rc_total=1
+		echo "::endgroup::"
+		return
+	fi
+	for address in '' '   ' '127.0.0.1' '127.0.0.1:' ':12345' \
+		'127.0.0.1:abc' '127.0.0.1:0' '127.0.0.1:65536' \
+		'127.0.0.1:100000' '127.0.0.1:-1' '127.0.0.1:1.5' \
+		'::1:12345' '[::1]' '[::1]:0' '[::1]:65536' \
+		'http://127.0.0.1:12345' '127.0.0.1:12345 --disable-reporting'; do
+		if ! jq --arg address "${address}" '. + {server_http_listen_addr: $address}' \
+			"${SCEN_DIR}/override.json" > "${OPTIONS_CACHE_FILE}"; then
+			echo "FAIL[invalid_http_listeners]: could not prepare options"
+			rc_total=1
+			break
+		fi
+		service_rc=0
+		timeout --kill-after=1s 10s "${SERVICE_SCRIPT}" >/tmp/http-service.log 2>&1 || service_rc=$?
+		if [[ ${service_rc} -ne 1 ]] \
+			|| ! grep -qF 'Invalid server_http_listen_addr:' /tmp/http-service.log \
+			|| grep -qF 'Starting Grafana Alloy' /tmp/http-service.log; then
+			printf 'FAIL[invalid_http_listeners]: %q was not rejected before startup\n' "${address}"
+			cat /tmp/http-service.log
+			rc_total=1
+		else
+			printf 'PASS[invalid_http_listeners]: rejected %q\n' "${address}"
+		fi
+	done
+	echo "::endgroup::"
+}
+
 expect_valid          "default"           "${SCEN_DIR}/default.json"          "prometheus.remote_write"
 expect_valid          "prometheus_labels" "${SCEN_DIR}/prom_labels.json"      "prometheus.remote_write ha-instance-01"
 expect_valid          "loki"              "${SCEN_DIR}/loki.json"             "prometheus.remote_write loki.write"
@@ -277,6 +398,18 @@ expect_setup_failure  "env_vars_reserved_name" "${SCEN_DIR}/env_vars_reserved_na
 expect_invalid_config
 expect_override
 expect_env_vars
+
+expect_http_listener "http_legacy_generated" "${SCEN_DIR}/default.json" '.' '0.0.0.0:12345' yes
+expect_http_listener "http_legacy_override" "${SCEN_DIR}/override.json" '.' '0.0.0.0:12345' yes
+expect_http_listener "http_null" "${SCEN_DIR}/override.json" '. + {server_http_listen_addr: null}' '0.0.0.0:12345' yes
+expect_http_listener "http_explicit_default" "${SCEN_DIR}/default.json" '. + {server_http_listen_addr: "0.0.0.0:12345"}' '0.0.0.0:12345' yes
+expect_http_listener "http_loopback_generated" "${SCEN_DIR}/loki_only.json" '. + {server_http_listen_addr: "127.0.0.1:12345"}' '127.0.0.1:12345' no
+expect_http_listener "http_loopback_override" "${SCEN_DIR}/override.json" '. + {server_http_listen_addr: "127.0.0.1:12345", override_config_path: $journal_config, environment_variables: [{name: "HTTP_LISTEN_ADDR", value: "keep-user-address"}, {name: "HTTP_LISTEN_PORT", value: "keep-user-port"}]}' '127.0.0.1:12345' no
+expect_http_listener "http_ipv6" "${SCEN_DIR}/override.json" '. + {server_http_listen_addr: "[::1]:12345"}' '[::1]:12345' no
+expect_http_listener "http_hostname" "${SCEN_DIR}/override.json" '. + {server_http_listen_addr: "localhost:12345"}' 'localhost:12345' no
+expect_http_listener "http_lower_port" "${SCEN_DIR}/override.json" '. + {server_http_listen_addr: "127.0.0.1:00001"}' '127.0.0.1:00001' no
+expect_http_listener "http_upper_port" "${SCEN_DIR}/override.json" '. + {server_http_listen_addr: "127.0.0.1:65535"}' '127.0.0.1:65535' no
+expect_invalid_http_listeners
 
 if [[ ${rc_total} -ne 0 ]]; then
 	echo "ALLOY E2E: FAILED"

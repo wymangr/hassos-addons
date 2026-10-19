@@ -18,7 +18,7 @@ Currently, this add-on supports the following components:
 1. Update configuration on the add-on "Configuration" Tab. See options below.
 1. Start the add-on.
 1. Check the `Logs` to confirm the add-on started successfully.
-1. You can also visit the Grafana Alloy Web UI by visiting `http://<homeassistnat_ip>:12345` in your browser.
+1. With the default HTTP listen address, you can also visit the Grafana Alloy Web UI at `http://<homeassistant_ip>:12345` in your browser.
 
 ## Protection Mode
 
@@ -47,6 +47,7 @@ No limitations that I found.
 
 | Config                       | Description                                                                              | Default value                       | Required                    |
 | ---------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------- |
+| `server_http_listen_addr`    | HTTP listen address in `host:port` or `[IPv6]:port` format, with port 1–65535. Set `127.0.0.1:12345` for host-local access only. Applies to generated and override configs. | 0.0.0.0:12345 | No |
 | `enable_prometheus`          | Enable sending metrics to Prometheus. If enabled, prometheus_write_endpoint is required. | true                                | No                          |
 | `prometheus_write_endpoint`  | Full URL to send metrics to.                                                             | http://prometheus:9090/api/v1/write | If `enable_prometheus`=true |
 | `prometheus_basic_auth.username` | Basic auth username for the Prometheus endpoint (e.g. Grafana Cloud instance ID). Basic auth is only sent when both username and password are set. |                 | No                          |
@@ -61,11 +62,11 @@ No limitations that I found.
 | `loki_basic_auth.username`   | Basic auth username for the Loki endpoint (e.g. Grafana Cloud instance ID). Basic auth is only sent when both username and password are set. |                   | No                          |
 | `loki_basic_auth.password`   | Basic auth password for the Loki endpoint (e.g. Grafana Cloud API token).                |                                     | No                          |
 | `enable_loki_syslog`         | Listen for syslog messages over UDP or TCP connections and forwards them to loki.        | false                               | No                          |
-| `override_config`            | If enabled, all other options will be ignored and you can supply your own Alloy config.  | false                               | No                          |
+| `override_config`            | Supply your own Alloy config instead of generating one. HTTP listen address and environment variables still apply. | false | No |
 | `override_config_path`       | Path to Override Alloy config file. HA config directory is counted to /config.           | /config/alloy/example.alloy         | If `override_config`=true   |
 | `environment_variables`      | List of `name`/`value` pairs set as environment variables for the Alloy process.         | []                                  | No                          |
 
-If `override_config` is true and a valid Alloy config file is supplied in `override_config_path`, all other options will be ignored.
+If `override_config` is true and a valid Alloy config file is supplied in `override_config_path`, config-generation options are ignored. `server_http_listen_addr` and `environment_variables` still apply.
 
 ### Environment Variables
 
