@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.12] - 2026-10-19
+
+- Added `server_http_listen_addr` option to configure Alloy's HTTP listen address, keeping `0.0.0.0:12345` as the default [#20](https://github.com/wymangr/hassos-addons/issues/20)
+- Bump Grafana Alloy version to [1.21.0](https://github.com/grafana/alloy/releases/tag/v1.21.0)
+- Bump base image from `9.4.0` to `9.5.0`
+
 ## [0.0.11] - 2026-08-31
 
 - Added `environment_variables` option to set environment variables for the Alloy process, usable in the config with `sys.env()` [#18](https://github.com/wymangr/hassos-addons/issues/18)

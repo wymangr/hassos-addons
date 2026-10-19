@@ -18,8 +18,21 @@ else
     CONFIG_FILE=$OVERRIDE_CONFIG
 fi
 
-bashio::log.info "Starting Grafana Alloy with ${CONFIG_FILE}"
-bashio::log.info "$(cat ${CONFIG_FILE})"
+# BASHIO_* names are reserved from user-supplied environment variables.
+BASHIO_ALLOY_HTTP_LISTEN_ADDR="$(bashio::config 'server_http_listen_addr' '0.0.0.0:12345')"
 
-# Run Alloy
-exec /usr/local/bin/alloy run --server.http.listen-addr=0.0.0.0:12345 --disable-reporting --storage.path=/data $CONFIG_FILE
+# Validate host:port or [IPv6]:port, with a numeric port from 1 to 65535.
+if [[ ! "${BASHIO_ALLOY_HTTP_LISTEN_ADDR}" =~ ^([[:alnum:]_.-]+|\[[[:xdigit:]:.]+(%[[:alnum:]_.-]+)?\]):[0-9]{1,5}$ ]]; then
+    bashio::exit.nok "Invalid server_http_listen_addr: use host:port or [IPv6]:port, e.g. 127.0.0.1:12345"
+fi
+BASHIO_ALLOY_HTTP_LISTEN_PORT="${BASHIO_ALLOY_HTTP_LISTEN_ADDR##*:}"
+if (( 10#${BASHIO_ALLOY_HTTP_LISTEN_PORT} < 1 || 10#${BASHIO_ALLOY_HTTP_LISTEN_PORT} > 65535 )); then
+    bashio::exit.nok "Invalid server_http_listen_addr: port must be between 1 and 65535"
+fi
+
+bashio::log.info "Starting Grafana Alloy with ${CONFIG_FILE}"
+bashio::log.info "$(cat "${CONFIG_FILE}")"
+
+exec /usr/local/bin/alloy run \
+    "--server.http.listen-addr=${BASHIO_ALLOY_HTTP_LISTEN_ADDR}" \
+    --disable-reporting --storage.path=/data "${CONFIG_FILE}"
